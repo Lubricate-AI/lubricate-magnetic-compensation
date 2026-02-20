@@ -1,0 +1,46 @@
+name: Slack Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build Slack payload
+        id: build_payload
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          BODY: ${{ github.event.release.body }}
+          REPO_URL: ${{ github.event.repository.html_url }}
+          REPO_NAME: ${{ github.event.repository.full_name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+        run: |
+          {
+            echo 'payload<<PAYLOAD_DELIMITER'
+            jq -n \
+              --arg tag "$TAG" \
+              --arg body "$BODY" \
+              --arg repo_url "$REPO_URL" \
+              --arg repo_name "$REPO_NAME" \
+              --arg release_url "$RELEASE_URL" \
+              '{
+                blocks: [
+                  {type: "header", text: {type: "plain_text", text: ("🚀 New Release: " + $tag)}},
+                  {type: "section", text: {type: "mrkdwn", text: ("*Repository:* <" + $repo_url + "|" + $repo_name + ">")}},
+                  {type: "section", text: {type: "mrkdwn", text: ("*Release Notes:*\n" + $body)}},
+                  {type: "actions", elements: [{type: "button", text: {type: "plain_text", text: "View Release"}, url: $release_url}]}
+                ]
+              }'
+            echo 'PAYLOAD_DELIMITER'
+          } >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        continue-on-error: true
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: ${{ steps.build_payload.outputs.payload }}
