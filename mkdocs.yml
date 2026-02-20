@@ -39,28 +39,28 @@ theme:
     repo: fontawesome/brands/github
 
 nav:
-  - Home: index.md
-  - Getting Started: getting-started.md
-  - User Guide:
-      - CLI Usage: user-guide/cli.md
-      - Visualization: user-guide/visualization.md
-      - Examples: user-guide/examples.md
-  - API Reference:
-      - Overview: api-reference/index.md
-      - ... | api-reference/SUMMARY.md
-  - Development:
-      - Contributing: development/contributing.md
-      - Architecture: development/architecture.md
+  - Home: README.md
+
+
+
+
+
+
+
+
+
+
+
 
 plugins:
   - search
   - gen-files:
       scripts:
         - docs/gen_ref_pages.py
-  - literate-nav:
-      nav_file: api-reference/SUMMARY.md
   - section-index
   - mkdocstrings:
+      handlers:
+        python:
       handlers:
         python:
           options:
