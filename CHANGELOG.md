@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-02-20)
+
+### Bug Fixes
+
+- Add missing docs directory to fix documentation CI
+  ([#5](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/5),
+  [`2566cdd`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/2566cdd04ddd4685507449d522c8245eaefeebbf))
+
+
 ## v1.1.0 (2026-02-20)
 
 ### Bug Fixes
