@@ -19,4 +19,4 @@ def run() -> None:
 
     except Exception as e:
         typer.echo(typer.style(f"Unexpected error: {e}", fg=typer.colors.RED), err=True)
-        sys.exit(1)
+        raise typer.Exit(code=1)
