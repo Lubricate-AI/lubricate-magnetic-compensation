@@ -4,7 +4,6 @@ import sys
 
 import typer
 
-
 app = typer.Typer(
     name="lubricate-magnetic-compensation",
     help="Calculating magnetic compensation coefficients using the Tolles-Lawson model",
@@ -14,8 +13,7 @@ app = typer.Typer(
 
 @app.command("run")
 def run() -> None:
-    """Run the magnetic compensation calculation.
-    """
+    """Run the magnetic compensation calculation."""
     try:
         typer.echo(typer.style("✓ Hello world", fg=typer.colors.GREEN))
 
