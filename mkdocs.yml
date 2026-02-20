@@ -1,0 +1,132 @@
+site_name: Lubricate Magnetic Compensation
+site_description: A Python package for 2D forward magnetic modeling using the Talwani algorithm
+site_url: https://lubricate-ai.github.io/lubricate-magnetic-compensation
+repo_url: https://github.com/Lubricate-AI/lubricate-magnetic-compensation
+repo_name: Lubricate-AI/lubricate-magnetic-compensation
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant      # Instant loading
+    - navigation.tracking     # URL updates with scroll
+    - navigation.tabs         # Top-level sections as tabs
+    - navigation.sections     # Sections in sidebar
+    - navigation.expand       # Expand sections by default
+    - navigation.top          # Back to top button
+    - search.suggest          # Search suggestions
+    - search.highlight        # Highlight search terms
+    - content.code.copy       # Copy button for code blocks
+    - content.code.annotate   # Code annotations
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - CLI Usage: user-guide/cli.md
+      - Visualization: user-guide/visualization.md
+      - Examples: user-guide/examples.md
+  - API Reference:
+      - Overview: api-reference/index.md
+      - ... | api-reference/SUMMARY.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Architecture: development/architecture.md
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: api-reference/SUMMARY.md
+  - section-index
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: true
+            members_order: source
+            heading_level: 2
+            merge_init_into_class: true
+            docstring_section_style: spacy
+            show_signature_annotations: true
+            separate_signature: true
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Lubricate-AI/lubricate-magnetic-compensation
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
