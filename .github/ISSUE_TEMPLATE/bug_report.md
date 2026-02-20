@@ -22,7 +22,7 @@ A clear and concise description of what you expected to happen.
 **Environment (please complete the following information):**
  - OS: [e.g. macOS, Linux, Windows]
  - Python Version: [e.g. 3.12]
- - forward-model Version: [e.g. 0.1.0]
+ - lubricate-magnetic-compensation Version: [e.g. 0.1.0]
 
 **Error Output**
 If applicable, add error messages, stack traces, or logs to help explain your problem.
