@@ -1,0 +1,6 @@
+# Configuration for typos spellchecker
+# https://github.com/crate-ci/typos
+
+[default.extend-words]
+# NumPy type hints - allow "ND" prefix
+ND = "ND"  # Used in NDArray (numpy.typing.NDArray)
