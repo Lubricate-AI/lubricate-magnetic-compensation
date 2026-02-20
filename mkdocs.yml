@@ -41,23 +41,10 @@ theme:
 nav:
   - Home: README.md
 
-
-
-
-
-
-
-
-
-
-
-
 plugins:
   - search
   - section-index
   - mkdocstrings:
-      handlers:
-        python:
       handlers:
         python:
           options:

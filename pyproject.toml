@@ -32,6 +32,10 @@ dev-dependencies = [
     "yamllint>=1.35.0",
 ]
 
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools.packages.find]
 include = ["lmc*"]
 
