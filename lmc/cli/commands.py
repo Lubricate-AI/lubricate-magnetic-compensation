@@ -1,6 +1,5 @@
 """CLI commands for lubricate-magnetic-compensation."""
 
-import sys
 
 import typer
 
