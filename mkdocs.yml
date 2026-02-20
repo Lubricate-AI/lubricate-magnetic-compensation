@@ -1,5 +1,5 @@
 site_name: Lubricate Magnetic Compensation
-site_description: A Python package for 2D forward magnetic modeling using the Talwani algorithm
+site_description: A Python package for Tolles-Lawson aircraft magnetic compensation and analysis
 site_url: https://lubricate-ai.github.io/lubricate-magnetic-compensation
 repo_url: https://github.com/Lubricate-AI/lubricate-magnetic-compensation
 repo_name: Lubricate-AI/lubricate-magnetic-compensation
