@@ -54,9 +54,6 @@ nav:
 
 plugins:
   - search
-  - gen-files:
-      scripts:
-        - docs/gen_ref_pages.py
   - section-index
   - mkdocstrings:
       handlers:
