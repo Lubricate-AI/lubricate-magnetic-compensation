@@ -1,6 +1,5 @@
 """CLI commands for lubricate-magnetic-compensation."""
 
-
 import typer
 
 app = typer.Typer(
@@ -18,4 +17,4 @@ def run() -> None:
 
     except Exception as e:
         typer.echo(typer.style(f"Unexpected error: {e}", fg=typer.colors.RED), err=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
