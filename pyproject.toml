@@ -94,9 +94,8 @@ exclude_lines = [
 targets = ["lmc"]
 
 [tool.semantic_release]
-# Version management - keep both files in sync
+# Version management - use pyproject.toml as the single source of truth
 version_toml = ["pyproject.toml:project.version"]
-version_variable = ["lmc/__init__.py:__version__"]
 
 # Branch and repository settings
 branch = "main"
