@@ -1,0 +1,3 @@
+[default.extend-words]
+# ANE = Aerospace and Navigational Electronics (IEEE journal abbreviation)
+ANE = "ANE"
