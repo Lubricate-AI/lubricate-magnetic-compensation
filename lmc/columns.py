@@ -17,3 +17,29 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     COL_BY,
     COL_BZ,
 )
+
+# --- Tolles-Lawson A-matrix column names ---
+
+# Permanent terms (3)
+COL_COS_X: str = "cos_x"
+COL_COS_Y: str = "cos_y"
+COL_COS_Z: str = "cos_z"
+
+# Induced terms (6)
+COL_COS_X2: str = "cos_x_cos_x"
+COL_COS_XY: str = "cos_x_cos_y"
+COL_COS_XZ: str = "cos_x_cos_z"
+COL_COS_Y2: str = "cos_y_cos_y"
+COL_COS_YZ: str = "cos_y_cos_z"
+COL_COS_Z2: str = "cos_z_cos_z"
+
+# Eddy current terms (9)
+COL_COS_X_DCOS_X: str = "cos_x_dcos_x"
+COL_COS_X_DCOS_Y: str = "cos_x_dcos_y"
+COL_COS_X_DCOS_Z: str = "cos_x_dcos_z"
+COL_COS_Y_DCOS_X: str = "cos_y_dcos_x"
+COL_COS_Y_DCOS_Y: str = "cos_y_dcos_y"
+COL_COS_Y_DCOS_Z: str = "cos_y_dcos_z"
+COL_COS_Z_DCOS_X: str = "cos_z_dcos_x"
+COL_COS_Z_DCOS_Y: str = "cos_z_dcos_y"
+COL_COS_Z_DCOS_Z: str = "cos_z_dcos_z"
