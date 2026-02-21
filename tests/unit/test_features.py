@@ -112,12 +112,43 @@ def test_terms_b_shape() -> None:
     df = _make_df()
     result = build_feature_matrix(df, _CONFIG_B)
     assert result.shape == (_N_ROWS, 9)
+    assert result.columns == [
+        COL_COS_X,
+        COL_COS_Y,
+        COL_COS_Z,
+        COL_COS_X2,
+        COL_COS_XY,
+        COL_COS_XZ,
+        COL_COS_Y2,
+        COL_COS_YZ,
+        COL_COS_Z2,
+    ]
 
 
 def test_terms_c_shape() -> None:
     df = _make_df()
     result = build_feature_matrix(df, _CONFIG_C)
     assert result.shape == (_N_ROWS, 18)
+    assert result.columns == [
+        COL_COS_X,
+        COL_COS_Y,
+        COL_COS_Z,
+        COL_COS_X2,
+        COL_COS_XY,
+        COL_COS_XZ,
+        COL_COS_Y2,
+        COL_COS_YZ,
+        COL_COS_Z2,
+        COL_COS_X_DCOS_X,
+        COL_COS_X_DCOS_Y,
+        COL_COS_X_DCOS_Z,
+        COL_COS_Y_DCOS_X,
+        COL_COS_Y_DCOS_Y,
+        COL_COS_Y_DCOS_Z,
+        COL_COS_Z_DCOS_X,
+        COL_COS_Z_DCOS_Y,
+        COL_COS_Z_DCOS_Z,
+    ]
 
 
 def test_row_count_matches_input() -> None:
