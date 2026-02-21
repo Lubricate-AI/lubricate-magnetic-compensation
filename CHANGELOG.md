@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-02-21)
+
+### Chores
+
+- Sync uv.lock to pyproject.toml version 1.2.0
+  ([#16](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/16),
+  [`f1b4710`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f1b471031d65f8de1e1dc7761e39169f2e9615fe))
+
+### Continuous Integration
+
+- Add typos.toml to allow ANE journal abbreviation
+  ([#16](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/16),
+  [`f1b4710`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f1b471031d65f8de1e1dc7761e39169f2e9615fe))
+
+### Documentation
+
+- Add Tolles-Lawson theory page
+  ([#16](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/16),
+  [`f1b4710`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f1b471031d65f8de1e1dc7761e39169f2e9615fe))
+
+### Features
+
+- Direction cosines & Tolles-Lawson feature matrix
+  ([#16](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/16),
+  [`f1b4710`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f1b471031d65f8de1e1dc7761e39169f2e9615fe))
+
+### Testing
+
+- Assert column order for term sets b and c
+  ([#16](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/16),
+  [`f1b4710`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f1b471031d65f8de1e1dc7761e39169f2e9615fe))
+
+
 ## v1.2.0 (2026-02-21)
 
 ### Bug Fixes
