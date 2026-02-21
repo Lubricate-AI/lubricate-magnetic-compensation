@@ -8,6 +8,8 @@ from lmc.columns import (
     COL_BX,
     COL_BY,
     COL_BZ,
+    COL_LAT,
+    COL_LON,
     COL_TIME,
     REQUIRED_COLUMNS,
 )
@@ -19,8 +21,8 @@ def _make_valid_df(n_rows: int = 5) -> pl.DataFrame:
     return pl.DataFrame(
         {
             COL_TIME: [float(i) for i in range(n_rows)],
-            "lat": [45.0 + 0.001 * i for i in range(n_rows)],
-            "lon": [-75.0 + 0.001 * i for i in range(n_rows)],
+            COL_LAT: [45.0 + 0.001 * i for i in range(n_rows)],
+            COL_LON: [-75.0 + 0.001 * i for i in range(n_rows)],
             COL_BTOTAL: [50_000.0 + float(i) for i in range(n_rows)],
             COL_BX: [100.0 + float(i) for i in range(n_rows)],
             COL_BY: [200.0 + float(i) for i in range(n_rows)],
