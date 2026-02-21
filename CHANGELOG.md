@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-02-21)
+
+### Bug Fixes
+
+- Use COL_LAT and COL_LON constants in test helper
+  ([#15](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/15),
+  [`f895db7`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f895db7408674b083e5497c1ec82ee3b46333d41))
+
+### Features
+
+- Add polars, data schema, and pipeline config
+  ([#15](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/15),
+  [`f895db7`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f895db7408674b083e5497c1ec82ee3b46333d41))
+
+- Data schema & polars integration
+  ([#15](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/15),
+  [`f895db7`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f895db7408674b083e5497c1ec82ee3b46333d41))
+
+
 ## v1.1.1 (2026-02-20)
 
 ### Bug Fixes
