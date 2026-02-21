@@ -68,3 +68,8 @@ A repo for calculating magnetic compensation coefficients using the Tolles-Lawso
 ## Code Quality Standards
 - Python code must pass ruff linting for reusable utilities
 - Type hints encouraged for reusable utilities
+
+### Module Structure
+- One cohesive concern per module (e.g. a single class, a single function, or a set of tightly related constants)
+- ❌ DON'T put multiple classes or unrelated functions in the same file
+- ✅ DO use `__init__.py` to re-export public symbols so callers don't need to know internal module paths
