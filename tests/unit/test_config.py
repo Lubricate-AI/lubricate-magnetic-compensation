@@ -1,5 +1,7 @@
 """Unit tests for lmc.config."""
 
+import datetime
+
 import pytest
 from pydantic import ValidationError
 
@@ -14,6 +16,8 @@ def test_pipeline_config_default_construction() -> None:
     assert cfg.model_terms == "c"
     assert cfg.use_ridge is False
     assert cfg.ridge_alpha == 1e-3
+    assert cfg.earth_field_method == "igrf"
+    assert cfg.igrf_date == datetime.date.today()
 
 
 def test_pipeline_config_is_immutable() -> None:
@@ -70,3 +74,21 @@ def test_pipeline_config_custom_values_roundtrip() -> None:
     assert cfg.sample_rate_hz == 100.0
     assert cfg.use_ridge is True
     assert cfg.ridge_alpha == 0.5
+
+
+def test_pipeline_config_igrf_requires_date() -> None:
+    with pytest.raises(ValueError, match="igrf_date"):
+        PipelineConfig(earth_field_method="igrf", igrf_date=None)
+
+
+def test_pipeline_config_igrf_with_date_succeeds() -> None:
+    cfg = PipelineConfig(
+        earth_field_method="igrf",
+        igrf_date=datetime.date(2024, 1, 1),
+    )
+    assert cfg.igrf_date == datetime.date(2024, 1, 1)
+
+
+def test_pipeline_config_steady_mean_without_date_succeeds() -> None:
+    cfg = PipelineConfig(earth_field_method="steady_mean")
+    assert cfg.earth_field_method == "steady_mean"

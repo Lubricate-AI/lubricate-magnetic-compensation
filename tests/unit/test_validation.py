@@ -4,6 +4,7 @@ import polars as pl
 import pytest
 
 from lmc.columns import (
+    COL_ALT,
     COL_BTOTAL,
     COL_BX,
     COL_BY,
@@ -23,6 +24,7 @@ def _make_valid_df(n_rows: int = 5) -> pl.DataFrame:
             COL_TIME: [float(i) for i in range(n_rows)],
             COL_LAT: [45.0 + 0.001 * i for i in range(n_rows)],
             COL_LON: [-75.0 + 0.001 * i for i in range(n_rows)],
+            COL_ALT: [0.3] * n_rows,
             COL_BTOTAL: [50_000.0 + float(i) for i in range(n_rows)],
             COL_BX: [100.0 + float(i) for i in range(n_rows)],
             COL_BY: [200.0 + float(i) for i in range(n_rows)],
