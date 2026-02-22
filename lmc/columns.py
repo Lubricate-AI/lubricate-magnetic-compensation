@@ -10,6 +10,7 @@ COL_BY: str = "B_y"
 COL_BZ: str = "B_z"
 
 COL_DELTA_B: str = "delta_B"
+COL_TMI_COMPENSATED: str = "tmi_compensated"
 
 # --- Attitude / heading columns ---
 # COL_HEADING doubles as the yaw signal for maneuver detection.
