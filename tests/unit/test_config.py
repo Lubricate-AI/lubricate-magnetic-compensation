@@ -18,6 +18,9 @@ def test_pipeline_config_default_construction() -> None:
     assert cfg.ridge_alpha == 1e-3
     assert cfg.earth_field_method == "igrf"
     assert cfg.igrf_date == datetime.date.today()
+    assert cfg.segment_label_col is None
+    assert cfg.reference_heading_deg is None
+    assert cfg.heading_tolerance_deg == 45.0
 
 
 def test_pipeline_config_is_immutable() -> None:

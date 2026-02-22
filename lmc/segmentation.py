@@ -222,14 +222,17 @@ def _parse_label(label: str) -> tuple[ManeuverType, HeadingType]:
             f"Unrecognised heading '{raw_heading}' in label '{label}'. "
             f"Must be one of {valid_headings}."
         )
-    return raw_maneuver, raw_heading  # type: ignore[return-value]
+    return raw_maneuver, raw_heading
 
 
 def _estimate_reference_heading(headings: npt.NDArray[np.float64]) -> float:
-    """Estimate the northernmost bin centre via folded circular mean.
+    """Estimate a reference offset in [0°, 90°) via folded circular mean.
 
-    Folds all headings into [0°, 90°) then computes the circular mean,
-    yielding a reference angle in [0°, 90°).
+    Folds all headings into [0°, 90°) by taking ``headings % 90``, then
+    computes the circular mean of those folded values.  The result is the
+    dominant intra-quadrant offset shared by all four flight legs — **not**
+    the N-bin centre in [0°, 360°).  Pass the return value to
+    ``_resolve_bin_centres`` to obtain the full set of four bin centres.
     """
     h_mod = headings % 90.0
     angles_rad = np.deg2rad(h_mod)
@@ -245,8 +248,10 @@ def _resolve_bin_centres(
 ) -> dict[HeadingType, float]:
     """Return the four cardinal bin centres keyed by ``HeadingType``.
 
-    The centres are 90° apart.  The N centre is the smallest clockwise angle
-    to 0° (true north); E, S, W follow in clockwise order.
+    The centres are 90° apart.  The centre assigned the ``"N"`` label is
+    whichever of the four has the smallest *angular distance* to 0° (i.e.
+    ``min(d, 360 - d)``); ``"E"``, ``"S"``, ``"W"`` follow in clockwise
+    (ascending-degree) order from there.
     """
     if config.reference_heading_deg is not None:
         ref = float(config.reference_heading_deg)
