@@ -25,6 +25,8 @@ class CalibrationResult:
         Fitted model coefficients, shape ``(n_terms,)``.
     residuals:
         Per-sample residuals ``A @ coefficients - δB``, shape ``(n_samples,)``.
+        Rows correspond to the concatenated segment rows in the order supplied to
+        ``calibrate()``, **not** to all rows of the input DataFrame.
     condition_number:
         Condition number of the stacked (un-augmented) A-matrix.
     n_terms:
