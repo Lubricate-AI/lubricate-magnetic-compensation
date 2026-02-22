@@ -96,6 +96,11 @@ exclude_lines = [
     "if __name__ == '__main__':",
 ]
 
+[tool.typos.default.extend-words]
+# FOM = Figure of Merit calibration flight pattern (domain term)
+fom = "fom"
+FOM = "FOM"
+
 [tool.bandit]
 targets = ["lmc"]
 

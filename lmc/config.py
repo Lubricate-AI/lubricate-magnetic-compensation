@@ -62,6 +62,26 @@ class PipelineConfig(BaseModel):
         ge=0.0,
         description="Ridge regularisation strength. Ignored when use_ridge is False.",
     )
+    segment_label_col: str | None = Field(
+        default=None,
+        description=(
+            "Name of the column containing pre-existing '<maneuver>_<heading>' labels "
+            "(e.g. 'pitch_N'). None triggers auto-detection."
+        ),
+    )
+    reference_heading_deg: float | None = Field(
+        default=None,
+        description=(
+            "Compass bearing [0, 360) of the northernmost flight leg. "
+            "None = auto-detect via folded circular mean of heading values. "
+            "Example: 0.0 for cardinal N/E/S/W; 45.0 for a 45° oblique flight."
+        ),
+    )
+    heading_tolerance_deg: float = Field(
+        default=45.0,
+        gt=0.0,
+        description="Half-width of each cardinal heading bin [degrees].",
+    )
 
     @model_validator(mode="after")
     def _check_bandpass(self) -> PipelineConfig:

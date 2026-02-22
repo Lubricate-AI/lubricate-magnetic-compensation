@@ -11,6 +11,13 @@ COL_BZ: str = "B_z"
 
 COL_DELTA_B: str = "delta_B"
 
+# --- Attitude / heading columns ---
+# COL_HEADING doubles as the yaw signal for maneuver detection.
+COL_HEADING: str = "heading"  # aircraft compass heading [0, 360) degrees
+COL_PITCH: str = "pitch"  # aircraft pitch angle [degrees]
+COL_ROLL: str = "roll"  # aircraft roll angle [degrees]
+COL_SEGMENT_LABEL: str = "segment"  # pre-labeled segment column, e.g. "pitch_N"
+
 REQUIRED_COLUMNS: tuple[str, ...] = (
     COL_TIME,
     COL_LAT,

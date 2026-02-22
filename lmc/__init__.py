@@ -25,14 +25,19 @@ from lmc.columns import (
     COL_COS_Z_DCOS_Y,
     COL_COS_Z_DCOS_Z,
     COL_DELTA_B,
+    COL_HEADING,
     COL_LAT,
     COL_LON,
+    COL_PITCH,
+    COL_ROLL,
+    COL_SEGMENT_LABEL,
     COL_TIME,
     REQUIRED_COLUMNS,
 )
 from lmc.config import PipelineConfig
 from lmc.earth_field import compute_interference
 from lmc.features import build_feature_matrix
+from lmc.segmentation import Segment, segment_fom
 from lmc.validation import validate_dataframe
 
 __all__ = [
@@ -60,12 +65,18 @@ __all__ = [
     "COL_COS_Z_DCOS_Y",
     "COL_COS_Z_DCOS_Z",
     "COL_DELTA_B",
+    "COL_HEADING",
     "COL_LAT",
     "COL_LON",
+    "COL_PITCH",
+    "COL_ROLL",
+    "COL_SEGMENT_LABEL",
     "COL_TIME",
     "REQUIRED_COLUMNS",
     "PipelineConfig",
+    "Segment",
     "compute_interference",
     "build_feature_matrix",
+    "segment_fom",
     "validate_dataframe",
 ]
