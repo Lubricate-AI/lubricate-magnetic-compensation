@@ -134,9 +134,7 @@ def compute_fom_report(
     offset = 0
     for seg in segments:
         n = seg.end_idx - seg.start_idx
-        db_seg = (
-            df[seg.start_idx : seg.end_idx][COL_DELTA_B].to_numpy().astype(np.float64)
-        )
+        db_seg = df.slice(seg.start_idx, n)[COL_DELTA_B].to_numpy().astype(np.float64)
         res_seg = result.residuals[offset : offset + n].astype(np.float64)
         offset += n
 
