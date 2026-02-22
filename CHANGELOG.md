@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.7.0 (2026-02-22)
+
+### Features
+
+- #11 - FOM quality metrics
+  ([#25](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/25),
+  [`1d1fa38`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/1d1fa383eeac226dce8d034c538851afe0fd6806))
+
+### Refactoring
+
+- Use df.slice() for consistency with calibration module
+  ([#25](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/25),
+  [`1d1fa38`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/1d1fa383eeac226dce8d034c538851afe0fd6806))
+
+
 ## v1.6.0 (2026-02-22)
 
 ### Documentation
