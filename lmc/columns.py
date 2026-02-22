@@ -3,15 +3,19 @@
 COL_TIME: str = "time"
 COL_LAT: str = "lat"
 COL_LON: str = "lon"
+COL_ALT: str = "alt"
 COL_BTOTAL: str = "B_total"
 COL_BX: str = "B_x"
 COL_BY: str = "B_y"
 COL_BZ: str = "B_z"
 
+COL_DELTA_B: str = "delta_B"
+
 REQUIRED_COLUMNS: tuple[str, ...] = (
     COL_TIME,
     COL_LAT,
     COL_LON,
+    COL_ALT,
     COL_BTOTAL,
     COL_BX,
     COL_BY,

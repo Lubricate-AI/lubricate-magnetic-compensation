@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -36,6 +37,22 @@ class PipelineConfig(BaseModel):
             "'c' = full permanent + induced + eddy (18 terms)."
         ),
     )
+    earth_field_method: Literal["igrf", "steady_mean"] = Field(
+        default="igrf",
+        description=(
+            "Earth field baseline method: "
+            "'igrf' evaluates the IGRF model at each sample (primary path); "
+            "'steady_mean' uses the mean B_total of steady-maneuver segments"
+            " (fallback)."
+        ),
+    )
+    igrf_date: datetime.date | None = Field(
+        default_factory=datetime.date.today,
+        description=(
+            "Date for IGRF model evaluation. "
+            "Required when earth_field_method is 'igrf'."
+        ),
+    )
     use_ridge: bool = Field(
         default=False,
         description="Use ridge (L2-regularised) least squares instead of OLS.",
@@ -59,4 +76,10 @@ class PipelineConfig(BaseModel):
                 f"bandpass_high_hz ({self.bandpass_high_hz}) must be below the "
                 f"Nyquist frequency ({nyquist} Hz)."
             )
+        return self
+
+    @model_validator(mode="after")
+    def _check_igrf_date(self) -> PipelineConfig:
+        if self.earth_field_method == "igrf" and self.igrf_date is None:
+            raise ValueError("igrf_date is required when earth_field_method is 'igrf'.")
         return self

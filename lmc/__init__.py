@@ -1,6 +1,7 @@
 """Lubricate Magnetic Compensation — public API."""
 
 from lmc.columns import (
+    COL_ALT,
     COL_BTOTAL,
     COL_BX,
     COL_BY,
@@ -23,16 +24,19 @@ from lmc.columns import (
     COL_COS_Z_DCOS_X,
     COL_COS_Z_DCOS_Y,
     COL_COS_Z_DCOS_Z,
+    COL_DELTA_B,
     COL_LAT,
     COL_LON,
     COL_TIME,
     REQUIRED_COLUMNS,
 )
 from lmc.config import PipelineConfig
+from lmc.earth_field import compute_interference
 from lmc.features import build_feature_matrix
 from lmc.validation import validate_dataframe
 
 __all__ = [
+    "COL_ALT",
     "COL_BTOTAL",
     "COL_BX",
     "COL_BY",
@@ -55,11 +59,13 @@ __all__ = [
     "COL_COS_Z_DCOS_X",
     "COL_COS_Z_DCOS_Y",
     "COL_COS_Z_DCOS_Z",
+    "COL_DELTA_B",
     "COL_LAT",
     "COL_LON",
     "COL_TIME",
     "REQUIRED_COLUMNS",
     "PipelineConfig",
+    "compute_interference",
     "build_feature_matrix",
     "validate_dataframe",
 ]
