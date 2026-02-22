@@ -33,8 +33,10 @@ from lmc.columns import (
     COL_ROLL,
     COL_SEGMENT_LABEL,
     COL_TIME,
+    COL_TMI_COMPENSATED,
     REQUIRED_COLUMNS,
 )
+from lmc.compensation import compensate
 from lmc.config import PipelineConfig
 from lmc.earth_field import compute_interference
 from lmc.features import build_feature_matrix
@@ -45,6 +47,7 @@ from lmc.validation import validate_dataframe
 __all__ = [
     "CalibrationResult",
     "calibrate",
+    "compensate",
     "COL_ALT",
     "COL_BTOTAL",
     "COL_BX",
@@ -76,6 +79,7 @@ __all__ = [
     "COL_ROLL",
     "COL_SEGMENT_LABEL",
     "COL_TIME",
+    "COL_TMI_COMPENSATED",
     "REQUIRED_COLUMNS",
     "PipelineConfig",
     "Segment",
