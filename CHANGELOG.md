@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.6.0 (2026-02-22)
+
+### Documentation
+
+- Clarify CalibrationResult.residuals alignment in docstring
+  ([#23](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/23),
+  [`483c4cd`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/483c4cdb9ef4e9b6b67b5e3e57c8b10e00b1ad8e))
+
+### Features
+
+- #10 - Tolles-Lawson coefficient estimation
+  ([#23](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/23),
+  [`483c4cd`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/483c4cdb9ef4e9b6b67b5e3e57c8b10e00b1ad8e))
+
+
 ## v1.5.0 (2026-02-22)
 
 ### Bug Fixes
