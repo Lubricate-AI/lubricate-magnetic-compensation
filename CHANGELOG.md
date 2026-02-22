@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.4.0 (2026-02-22)
+
+### Features
+
+- Earth field baseline via IGRF
+  ([#18](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/18),
+  [`74a1c19`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/74a1c19ec048e3f5dd9be42dd3a1b2344155d440))
+
+
 ## v1.3.0 (2026-02-21)
 
 ### Chores
