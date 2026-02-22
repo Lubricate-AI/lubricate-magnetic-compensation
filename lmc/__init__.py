@@ -38,6 +38,7 @@ from lmc.columns import (
 from lmc.config import PipelineConfig
 from lmc.earth_field import compute_interference
 from lmc.features import build_feature_matrix
+from lmc.metrics import FomReport, compute_fom_report
 from lmc.segmentation import Segment, segment_fom
 from lmc.validation import validate_dataframe
 
@@ -80,6 +81,8 @@ __all__ = [
     "Segment",
     "compute_interference",
     "build_feature_matrix",
+    "FomReport",
+    "compute_fom_report",
     "segment_fom",
     "validate_dataframe",
 ]
