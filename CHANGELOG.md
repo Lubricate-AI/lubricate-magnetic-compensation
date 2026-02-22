@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.8.0 (2026-02-22)
+
+### Bug Fixes
+
+- Move COL_TMI_COMPENSATED to correct alphabetical position in __all__
+  ([#26](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/26),
+  [`391f79b`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/391f79ba07816a43d2f878355dfb01753f097f7b))
+
+### Features
+
+- #12 - apply compensation to survey data
+  ([#26](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/26),
+  [`391f79b`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/391f79ba07816a43d2f878355dfb01753f097f7b))
+
+
 ## v1.7.0 (2026-02-22)
 
 ### Features
