@@ -1,5 +1,6 @@
 """Lubricate Magnetic Compensation — public API."""
 
+from lmc.calibration import CalibrationResult, calibrate
 from lmc.columns import (
     COL_ALT,
     COL_BTOTAL,
@@ -41,6 +42,8 @@ from lmc.segmentation import Segment, segment_fom
 from lmc.validation import validate_dataframe
 
 __all__ = [
+    "CalibrationResult",
+    "calibrate",
     "COL_ALT",
     "COL_BTOTAL",
     "COL_BX",

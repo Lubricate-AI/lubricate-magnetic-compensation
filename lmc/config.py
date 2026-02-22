@@ -82,6 +82,14 @@ class PipelineConfig(BaseModel):
         gt=0.0,
         description="Half-width of each cardinal heading bin [degrees].",
     )
+    condition_number_threshold: float = Field(
+        default=1e6,
+        gt=0.0,
+        description=(
+            "Condition number threshold above which a warning is emitted "
+            "during calibration, indicating a potentially ill-conditioned system."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_bandpass(self) -> PipelineConfig:
