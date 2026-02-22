@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.5.0 (2026-02-22)
+
+### Bug Fixes
+
+- Address PR #20 review comments
+  ([#20](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/20),
+  [`e7dd414`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/e7dd41423f6eae1ec7fa5af7690f7fe449ca3717))
+
+### Features
+
+- #9 - Form test segmentation
+  ([#20](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/20),
+  [`e7dd414`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/e7dd41423f6eae1ec7fa5af7690f7fe449ca3717))
+
+
 ## v1.4.0 (2026-02-22)
 
 ### Features
