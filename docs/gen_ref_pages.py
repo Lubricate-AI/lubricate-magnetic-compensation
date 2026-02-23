@@ -13,7 +13,7 @@ for path in sorted(Path("lmc").rglob("*.py")):
 
     parts = tuple(module_path.parts)
 
-    if parts[-1] in ("__init__", "__main__"):
+    if parts[-1] == "__main__":
         continue
     if parts[-1] == "__init__":
         parts = parts[:-1]
