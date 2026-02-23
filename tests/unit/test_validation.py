@@ -139,6 +139,16 @@ def test_validate_dataframe_raises_on_imu_column_wrong_dtype() -> None:
         validate_dataframe(df)
 
 
+def test_validate_dataframe_raises_on_imu_column_with_nulls() -> None:
+    df = _make_valid_df().with_columns(
+        pl.Series(COL_ROLL_RATE, [0.1, None, 0.1, 0.1, 0.1], dtype=pl.Float64),
+        pl.lit(0.2).cast(pl.Float64).alias(COL_PITCH_RATE),
+        pl.lit(0.3).cast(pl.Float64).alias(COL_YAW_RATE),
+    )
+    with pytest.raises(ValueError, match="null values"):
+        validate_dataframe(df)
+
+
 def test_validate_dataframe_imu_columns_optional() -> None:
     """DataFrame without any IMU columns passes validation without issue."""
     df = _make_valid_df()

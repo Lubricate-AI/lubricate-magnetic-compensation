@@ -14,7 +14,7 @@ _OPTIONAL_IMU_COLUMNS: tuple[str, ...] = (COL_ROLL_RATE, COL_PITCH_RATE, COL_YAW
 
 
 def _check_optional_imu_dtypes(df: pl.DataFrame, errors: list[str]) -> None:
-    """Append dtype errors for any IMU columns that are present but not Float64."""
+    """Append dtype and null errors for any IMU columns that are present."""
     present = [col for col in _OPTIONAL_IMU_COLUMNS if col in df.columns]
     wrong = [col for col in present if df[col].dtype != pl.Float64]
     if wrong:
@@ -23,6 +23,9 @@ def _check_optional_imu_dtypes(df: pl.DataFrame, errors: list[str]) -> None:
             + ", ".join(f"{col}={df[col].dtype}" for col in wrong)
             + "."
         )
+    null_cols = [col for col in present if df[col].null_count() > 0]
+    if null_cols:
+        errors.append(f"Optional IMU columns contain null values: {null_cols}.")
 
 
 def validate_dataframe(df: object) -> pl.DataFrame:

@@ -123,7 +123,9 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
     ------
     ValueError
         If ``config.model_terms == "c"`` and ``df`` has fewer than 2 rows,
-        or if any ``B_total`` value is non-positive.
+        or if any ``B_total`` value is non-positive,
+        or if ``config.use_imu_rates`` is ``True`` and any of the three IMU
+        columns (``roll_rate``, ``pitch_rate``, ``yaw_rate``) are absent.
     """
     if config.model_terms == "c" and len(df) < 2:
         raise ValueError(
