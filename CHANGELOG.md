@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v1.10.1 (2026-02-23)
+
+### Bug Fixes
+
+- Skip only __main__ in gen_ref_pages, convert __init__ to index pages
+  ([#36](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/36),
+  [`ee74735`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ee74735f1905f3229588d00e82ffa7c2a214cdcd))
+
+### Documentation
+
+- #33 - auto-generate API reference pages with mkdocs-gen-files and literate-nav
+  ([#36](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/36),
+  [`ee74735`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ee74735f1905f3229588d00e82ffa7c2a214cdcd))
+
+- #33 - auto-generate API reference with mkdocs-gen-files and literate-nav
+  ([#36](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/36),
+  [`ee74735`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ee74735f1905f3229588d00e82ffa7c2a214cdcd))
+
+- #34 - flesh out README with badges, features, and API reference
+  ([#35](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/35),
+  [`103dc6b`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/103dc6b8fce92b40558017ae1be9986f1e28fe3b))
+
+
 ## v1.10.0 (2026-02-23)
 
 ### Bug Fixes
