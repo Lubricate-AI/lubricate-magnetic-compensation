@@ -8,6 +8,8 @@ import numpy as np
 import polars as pl
 
 from lmc import (
+    COL_BTOTAL,
+    COL_TMI_COMPENSATED,
     REQUIRED_COLUMNS,
     PipelineConfig,
     calibrate,
@@ -36,15 +38,11 @@ def test_calibrate_compensate_full_pipeline() -> None:
     segments = segment_fom(df_fom, config)
 
     # Build steady_mask from steady segments
-    steady_rows = {
-        i
-        for seg in segments
-        if seg.maneuver == "steady"
-        for i in range(seg.start_idx, seg.end_idx)
-    }
-    steady_mask = pl.Series(
-        [i in steady_rows for i in range(df_fom.height)], dtype=pl.Boolean
-    )
+    mask_arr = np.zeros(df_fom.height, dtype=bool)
+    for seg in segments:
+        if seg.maneuver == "steady":
+            mask_arr[seg.start_idx : seg.end_idx] = True
+    steady_mask = pl.Series(mask_arr, dtype=pl.Boolean)
 
     delta_b = compute_interference(df_fom, config, steady_mask=steady_mask)
     df_fom = df_fom.with_columns(delta_b)
@@ -54,15 +52,20 @@ def test_calibrate_compensate_full_pipeline() -> None:
 
     assert report.improvement_ratio > 10.0
 
-    # Verify compensation on a single smooth block (pitch_N, rows 50-99).
+    # Verify compensation on a single smooth block (pitch_N).
     # The full FOM dataset has 90° heading jumps between groups; at those
     # boundaries np.gradient produces large cross-segment derivatives that
     # corrupt the eddy-current correction. Within a single block the feature
     # matrix is identical to what calibration used, so compensation is clean.
-    pitch_n = df_fom.slice(50, 50)  # pitch_N block: 50 rows, no heading transition
+    pitch_n_seg = next(
+        seg for seg in segments if seg.maneuver == "pitch" and seg.heading == "N"
+    )
+    pitch_n = df_fom.slice(
+        pitch_n_seg.start_idx, pitch_n_seg.end_idx - pitch_n_seg.start_idx
+    )
     df_compensated = compensate(pitch_n, result, config)
-    std_raw = df_compensated["B_total"].std()
-    std_comp = df_compensated["tmi_compensated"].std()
+    std_raw = df_compensated[COL_BTOTAL].std()
+    std_comp = df_compensated[COL_TMI_COMPENSATED].std()
     assert isinstance(std_raw, float) and isinstance(std_comp, float)
     assert std_raw / std_comp > 10.0
 

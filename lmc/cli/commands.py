@@ -44,14 +44,14 @@ def calibrate_cmd(
         ),
     ] = None,
     model_terms: Annotated[
-        str,
+        Literal["a", "b", "c"],
         typer.Option(
             "--model-terms",
             help="Tolles-Lawson term set: a (permanent), b (+induced), c (full).",
         ),
     ] = "c",
     earth_field_method: Annotated[
-        str,
+        Literal["igrf", "steady_mean"],
         typer.Option(
             "--earth-field-method",
             help="Earth field baseline method: igrf or steady_mean.",
@@ -88,12 +88,9 @@ def calibrate_cmd(
         else:
             parsed_date = datetime.date.today()
 
-        mt = cast(Literal["a", "b", "c"], model_terms)
-        ef = cast(Literal["igrf", "steady_mean"], earth_field_method)
-
         config = PipelineConfig(
-            model_terms=mt,
-            earth_field_method=ef,
+            model_terms=model_terms,
+            earth_field_method=earth_field_method,
             igrf_date=parsed_date,
             use_ridge=use_ridge,
             ridge_alpha=ridge_alpha,
@@ -105,16 +102,12 @@ def calibrate_cmd(
         segments = segment_fom(df, config)
 
         steady_mask: pl.Series | None = None
-        if ef == "steady_mean":
-            steady_rows = {
-                i
-                for seg in segments
-                if seg.maneuver == "steady"
-                for i in range(seg.start_idx, seg.end_idx)
-            }
-            steady_mask = pl.Series(
-                [i in steady_rows for i in range(df.height)], dtype=pl.Boolean
-            )
+        if earth_field_method == "steady_mean":
+            mask_arr = np.zeros(df.height, dtype=bool)
+            for seg in segments:
+                if seg.maneuver == "steady":
+                    mask_arr[seg.start_idx : seg.end_idx] = True
+            steady_mask = pl.Series(mask_arr, dtype=pl.Boolean)
 
         delta_b = compute_interference(df, config, steady_mask=steady_mask)
         df = df.with_columns(delta_b)
