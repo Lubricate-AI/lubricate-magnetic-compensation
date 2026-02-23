@@ -95,3 +95,15 @@ def test_pipeline_config_igrf_with_date_succeeds() -> None:
 def test_pipeline_config_steady_mean_without_date_succeeds() -> None:
     cfg = PipelineConfig(earth_field_method="steady_mean")
     assert cfg.earth_field_method == "steady_mean"
+
+
+def test_pipeline_config_reference_heading_accepts_negative() -> None:
+    """Negative values are permissible; normalisation happens downstream."""
+    cfg = PipelineConfig(reference_heading_deg=-90.0)
+    assert cfg.reference_heading_deg == -90.0
+
+
+def test_pipeline_config_reference_heading_accepts_above_360() -> None:
+    """Values >= 360 are permissible; normalisation happens downstream."""
+    cfg = PipelineConfig(reference_heading_deg=450.0)
+    assert cfg.reference_heading_deg == 450.0

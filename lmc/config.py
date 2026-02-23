@@ -72,7 +72,8 @@ class PipelineConfig(BaseModel):
     reference_heading_deg: float | None = Field(
         default=None,
         description=(
-            "Compass bearing [0, 360) of the northernmost flight leg. "
+            "Reference heading of the northernmost flight leg in degrees. "
+            "Accepts any real number — values are normalised modulo 360° internally. "
             "None = auto-detect via folded circular mean of heading values. "
             "Example: 0.0 for cardinal N/E/S/W; 45.0 for a 45° oblique flight."
         ),
