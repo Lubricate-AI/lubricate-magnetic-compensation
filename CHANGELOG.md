@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v1.9.0 (2026-02-23)
+
+### Features
+
+- #13 - CLI integration & end-to-end integration tests
+  ([#27](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/27),
+  [`2a15ca9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/2a15ca94ef57363bbed6e1f8d02a2361102a1af2))
+
+### Refactoring
+
+- Address PR #27 review comments
+  ([#27](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/27),
+  [`2a15ca9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/2a15ca94ef57363bbed6e1f8d02a2361102a1af2))
+
+
 ## v1.8.0 (2026-02-22)
 
 ### Bug Fixes
