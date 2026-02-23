@@ -32,7 +32,10 @@ from lmc.columns import (
     COL_COS_Z_DCOS_Z,
     COL_LAT,
     COL_LON,
+    COL_PITCH_RATE,
+    COL_ROLL_RATE,
     COL_TIME,
+    COL_YAW_RATE,
 )
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
@@ -332,3 +335,116 @@ def test_no_nulls_in_output() -> None:
     null_counts = result.null_count()
     for col in result.columns:
         assert null_counts[col][0] == 0, f"Unexpected nulls in column {col!r}"
+
+
+# ---------------------------------------------------------------------------
+# IMU angular rate path tests
+# ---------------------------------------------------------------------------
+
+_ROLL_RATE = 0.1
+_PITCH_RATE = 0.2
+_YAW_RATE = 0.3
+
+_CONFIG_C_IMU = PipelineConfig(model_terms="c", use_imu_rates=True)
+
+
+def _make_imu_df(
+    roll_rate: float = _ROLL_RATE,
+    pitch_rate: float = _PITCH_RATE,
+    yaw_rate: float = _YAW_RATE,
+    n: int = _N_ROWS,
+) -> pl.DataFrame:
+    """Return a valid DataFrame with constant B field and constant IMU rate columns."""
+    base = _make_df(n=n)
+    return base.with_columns(
+        pl.lit(roll_rate).cast(pl.Float64).alias(COL_ROLL_RATE),
+        pl.lit(pitch_rate).cast(pl.Float64).alias(COL_PITCH_RATE),
+        pl.lit(yaw_rate).cast(pl.Float64).alias(COL_YAW_RATE),
+    )
+
+
+def test_imu_path_shape() -> None:
+    df = _make_imu_df()
+    result = build_feature_matrix(df, _CONFIG_C_IMU)
+    assert result.shape == (_N_ROWS, 18)
+    assert result.columns == [
+        COL_COS_X,
+        COL_COS_Y,
+        COL_COS_Z,
+        COL_COS_X2,
+        COL_COS_XY,
+        COL_COS_XZ,
+        COL_COS_Y2,
+        COL_COS_YZ,
+        COL_COS_Z2,
+        COL_COS_X_DCOS_X,
+        COL_COS_X_DCOS_Y,
+        COL_COS_X_DCOS_Z,
+        COL_COS_Y_DCOS_X,
+        COL_COS_Y_DCOS_Y,
+        COL_COS_Y_DCOS_Z,
+        COL_COS_Z_DCOS_X,
+        COL_COS_Z_DCOS_Y,
+        COL_COS_Z_DCOS_Z,
+    ]
+
+
+def test_imu_path_eddy_values() -> None:
+    """Constant B + constant IMU rates → eddy terms equal cos_i * rate_j exactly."""
+    df = _make_imu_df()
+    result = build_feature_matrix(df, _CONFIG_C_IMU)
+
+    expected = {
+        COL_COS_X_DCOS_X: _COS_X * _ROLL_RATE,
+        COL_COS_X_DCOS_Y: _COS_X * _PITCH_RATE,
+        COL_COS_X_DCOS_Z: _COS_X * _YAW_RATE,
+        COL_COS_Y_DCOS_X: _COS_Y * _ROLL_RATE,
+        COL_COS_Y_DCOS_Y: _COS_Y * _PITCH_RATE,
+        COL_COS_Y_DCOS_Z: _COS_Y * _YAW_RATE,
+        COL_COS_Z_DCOS_X: _COS_Z * _ROLL_RATE,
+        COL_COS_Z_DCOS_Y: _COS_Z * _PITCH_RATE,
+        COL_COS_Z_DCOS_Z: _COS_Z * _YAW_RATE,
+    }
+    for col, expected_val in expected.items():
+        assert all(
+            math.isclose(v, expected_val, abs_tol=1e-12) for v in result[col].to_list()
+        ), f"Mismatch in column {col!r}"
+
+
+def test_imu_path_raises_when_columns_absent() -> None:
+    df = _make_df()  # no IMU columns
+    with pytest.raises(ValueError, match="IMU columns are absent"):
+        build_feature_matrix(df, _CONFIG_C_IMU)
+
+
+def test_imu_path_raises_partial_columns() -> None:
+    """Only 1 of 3 IMU columns present → ValueError listing the missing ones."""
+    df = _make_df().with_columns(
+        pl.lit(_ROLL_RATE).cast(pl.Float64).alias(COL_ROLL_RATE)
+    )
+    with pytest.raises(ValueError, match="IMU columns are absent"):
+        build_feature_matrix(df, _CONFIG_C_IMU)
+
+
+def test_default_path_unchanged_with_imu_columns_present() -> None:
+    """use_imu_rates=False (default) uses finite-difference path even
+    when IMU columns exist."""
+    df = _make_imu_df()
+    result = build_feature_matrix(df, _CONFIG_C)  # default config, use_imu_rates=False
+
+    # Constant B → all direction cosine derivatives = 0 → all eddy terms = 0
+    eddy_cols = [
+        COL_COS_X_DCOS_X,
+        COL_COS_X_DCOS_Y,
+        COL_COS_X_DCOS_Z,
+        COL_COS_Y_DCOS_X,
+        COL_COS_Y_DCOS_Y,
+        COL_COS_Y_DCOS_Z,
+        COL_COS_Z_DCOS_X,
+        COL_COS_Z_DCOS_Y,
+        COL_COS_Z_DCOS_Z,
+    ]
+    for col in eddy_cols:
+        assert all(
+            math.isclose(v, 0.0, abs_tol=1e-12) for v in result[col].to_list()
+        ), f"Expected zero for {col!r} with constant signal and default (FD) path"

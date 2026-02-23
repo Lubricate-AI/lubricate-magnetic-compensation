@@ -11,7 +11,10 @@ from lmc.columns import (
     COL_BZ,
     COL_LAT,
     COL_LON,
+    COL_PITCH_RATE,
+    COL_ROLL_RATE,
     COL_TIME,
+    COL_YAW_RATE,
     REQUIRED_COLUMNS,
 )
 from lmc.validation import validate_dataframe
@@ -109,3 +112,48 @@ def test_validate_dataframe_raises_on_duplicate_timestamps() -> None:
     )
     with pytest.raises(ValueError, match="monotonically increasing"):
         validate_dataframe(broken)
+
+
+# ---------------------------------------------------------------------------
+# Optional IMU column dtype tests
+# ---------------------------------------------------------------------------
+
+
+def test_validate_dataframe_accepts_valid_imu_columns() -> None:
+    df = _make_valid_df().with_columns(
+        pl.lit(0.1).cast(pl.Float64).alias(COL_ROLL_RATE),
+        pl.lit(0.2).cast(pl.Float64).alias(COL_PITCH_RATE),
+        pl.lit(0.3).cast(pl.Float64).alias(COL_YAW_RATE),
+    )
+    result = validate_dataframe(df)
+    assert result is df
+
+
+def test_validate_dataframe_raises_on_imu_column_wrong_dtype() -> None:
+    df = _make_valid_df().with_columns(
+        pl.lit(0).cast(pl.Int64).alias(COL_ROLL_RATE),
+        pl.lit(0.2).cast(pl.Float64).alias(COL_PITCH_RATE),
+        pl.lit(0.3).cast(pl.Float64).alias(COL_YAW_RATE),
+    )
+    with pytest.raises(ValueError, match=COL_ROLL_RATE):
+        validate_dataframe(df)
+
+
+def test_validate_dataframe_raises_on_imu_column_with_nulls() -> None:
+    df = _make_valid_df().with_columns(
+        pl.Series(COL_ROLL_RATE, [0.1, None, 0.1, 0.1, 0.1], dtype=pl.Float64),
+        pl.lit(0.2).cast(pl.Float64).alias(COL_PITCH_RATE),
+        pl.lit(0.3).cast(pl.Float64).alias(COL_YAW_RATE),
+    )
+    with pytest.raises(ValueError, match="null values"):
+        validate_dataframe(df)
+
+
+def test_validate_dataframe_imu_columns_optional() -> None:
+    """DataFrame without any IMU columns passes validation without issue."""
+    df = _make_valid_df()
+    assert COL_ROLL_RATE not in df.columns
+    assert COL_PITCH_RATE not in df.columns
+    assert COL_YAW_RATE not in df.columns
+    result = validate_dataframe(df)
+    assert result is df
