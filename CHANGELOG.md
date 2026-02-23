@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.10.0 (2026-02-23)
+
+### Bug Fixes
+
+- Address PR review comments on #14
+  ([#31](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/31),
+  [`8dfab59`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8dfab59a7cae179c53d09aeb8f28a76035b00383))
+
+### Documentation
+
+- #22 - document reference_heading_deg normalisation behaviour
+  ([#29](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/29),
+  [`6744f0d`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/6744f0d836b4d933e85d071ccc72f1d1a44ad867))
+
+### Features
+
+- #14 - optional IMU angular rates for eddy-current term estimation
+  ([#31](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/31),
+  [`8dfab59`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8dfab59a7cae179c53d09aeb8f28a76035b00383))
+
+
 ## v1.9.0 (2026-02-23)
 
 ### Features
