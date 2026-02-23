@@ -107,3 +107,11 @@ def test_pipeline_config_reference_heading_accepts_above_360() -> None:
     """Values >= 360 are permissible; normalisation happens downstream."""
     cfg = PipelineConfig(reference_heading_deg=450.0)
     assert cfg.reference_heading_deg == 450.0
+
+
+def test_pipeline_config_use_imu_rates_defaults_false() -> None:
+    assert PipelineConfig().use_imu_rates is False
+
+
+def test_pipeline_config_use_imu_rates_can_be_set_true() -> None:
+    assert PipelineConfig(use_imu_rates=True).use_imu_rates is True

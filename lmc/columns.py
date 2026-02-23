@@ -19,6 +19,11 @@ COL_PITCH: str = "pitch"  # aircraft pitch angle [degrees]
 COL_ROLL: str = "roll"  # aircraft roll angle [degrees]
 COL_SEGMENT_LABEL: str = "segment"  # pre-labeled segment column, e.g. "pitch_N"
 
+# --- Optional IMU angular rate columns (not in REQUIRED_COLUMNS) ---
+COL_ROLL_RATE: str = "roll_rate"  # aircraft roll rate [rad/s]
+COL_PITCH_RATE: str = "pitch_rate"  # aircraft pitch rate [rad/s]
+COL_YAW_RATE: str = "yaw_rate"  # aircraft yaw rate [rad/s]
+
 REQUIRED_COLUMNS: tuple[str, ...] = (
     COL_TIME,
     COL_LAT,

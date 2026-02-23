@@ -91,6 +91,15 @@ class PipelineConfig(BaseModel):
             "during calibration, indicating a potentially ill-conditioned system."
         ),
     )
+    use_imu_rates: bool = Field(
+        default=False,
+        description=(
+            "When True, use IMU angular rate channels (roll_rate, pitch_rate, yaw_rate)"
+            " in place of numerically-differentiated direction cosines for eddy-current"
+            " term estimation. Only applied when model_terms='c'. "
+            "Requires all three IMU columns to be present in the input DataFrame."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_bandpass(self) -> PipelineConfig:

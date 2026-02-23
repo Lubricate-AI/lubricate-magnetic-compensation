@@ -29,7 +29,10 @@ from lmc.columns import (
     COL_COS_Z_DCOS_X,
     COL_COS_Z_DCOS_Y,
     COL_COS_Z_DCOS_Z,
+    COL_PITCH_RATE,
+    COL_ROLL_RATE,
     COL_TIME,
+    COL_YAW_RATE,
 )
 from lmc.config import PipelineConfig
 
@@ -75,6 +78,30 @@ def _cosine_derivatives(
     dcos_y = np.asarray(np.gradient(cos_y, time), dtype=np.float64)
     dcos_z = np.asarray(np.gradient(cos_z, time), dtype=np.float64)
     return dcos_x, dcos_y, dcos_z
+
+
+def _imu_rates(
+    df: pl.DataFrame,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Extract IMU angular rate channels as direct substitutes for ḋcos signals.
+
+    Returns (roll_rate, pitch_rate, yaw_rate) as float64 arrays.
+    Raises ValueError if any of the three columns are absent.
+    """
+    missing = [
+        col
+        for col in (COL_ROLL_RATE, COL_PITCH_RATE, COL_YAW_RATE)
+        if col not in df.columns
+    ]
+    if missing:
+        raise ValueError(
+            f"use_imu_rates=True but the following IMU columns are absent: {missing}."
+        )
+    return (
+        np.asarray(df[COL_ROLL_RATE].to_numpy(), dtype=np.float64),
+        np.asarray(df[COL_PITCH_RATE].to_numpy(), dtype=np.float64),
+        np.asarray(df[COL_YAW_RATE].to_numpy(), dtype=np.float64),
+    )
 
 
 def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFrame:
@@ -123,8 +150,11 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
         data[COL_COS_Z2] = cos_z * cos_z
 
     if config.model_terms == "c":
-        time = np.asarray(df[COL_TIME].to_numpy(), dtype=np.float64)
-        dcos_x, dcos_y, dcos_z = _cosine_derivatives(cos_x, cos_y, cos_z, time)
+        if config.use_imu_rates:
+            dcos_x, dcos_y, dcos_z = _imu_rates(df)
+        else:
+            time = np.asarray(df[COL_TIME].to_numpy(), dtype=np.float64)
+            dcos_x, dcos_y, dcos_z = _cosine_derivatives(cos_x, cos_y, cos_z, time)
 
         # Eddy current terms (9)
         data[COL_COS_X_DCOS_X] = cos_x * dcos_x
