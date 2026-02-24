@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v1.11.0 (2026-02-24)
+
+### Bug Fixes
+
+- Loosen typer dependency
+  ([#39](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/39),
+  [`ca9ea82`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ca9ea8296ded25b64c3f871fac36cb9f348e6899))
+
+### Documentation
+
+- #37 - fix hallucinated Tolles-Lawson DOI and add Gnadt et al. reference
+  ([#38](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/38),
+  [`d2b46c8`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/d2b46c8c3b241fc5342bd68aa50509a3809fcbd2))
+
+### Features
+
+- Add validate_dataframe to build_feature_matrix
+  ([#40](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/40),
+  [`9b24221`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9b24221b77bbe4dc98ea7101f32be65e43905776))
+
+
 ## v1.10.1 (2026-02-23)
 
 ### Bug Fixes
