@@ -2,6 +2,35 @@
 
 <!-- version list -->
 
+## v1.15.0 (2026-02-24)
+
+### Bug Fixes
+
+- Address review comments on coefficients JSON validation
+  ([#45](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/45),
+  [`c8d640f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/c8d640fa29c20c80f06200224e330d00eecd26c3))
+
+### Documentation
+
+- Add physical justification for IMU rate substitution
+  ([#44](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/44),
+  [`ed43535`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ed435350ec06c2939c574da89cf446f6bf146dcc))
+
+- Add physical justification for IMU rate substitution in eddy-current terms
+  ([#44](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/44),
+  [`ed43535`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ed435350ec06c2939c574da89cf446f6bf146dcc))
+
+- Address Copilot review comments on IMU rate substitution section
+  ([#44](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/44),
+  [`ed43535`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/ed435350ec06c2939c574da89cf446f6bf146dcc))
+
+### Features
+
+- Validate coefficients JSON schema in compensate command
+  ([#45](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/45),
+  [`c8d640f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/c8d640fa29c20c80f06200224e330d00eecd26c3))
+
+
 ## v1.14.0 (2026-02-24)
 
 ### Features
