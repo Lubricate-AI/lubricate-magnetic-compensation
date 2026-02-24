@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.14.0 (2026-02-24)
+
+### Features
+
+- Validate segment bounds in calibrate()
+  ([#43](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/43),
+  [`22e5fdf`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/22e5fdfa631faeb3042b24699623e69d06650fe5))
+
+
 ## v1.13.0 (2026-02-24)
 
 ### Features

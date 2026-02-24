@@ -1,6 +1,6 @@
 [project]
 name = "lubricate-magnetic-compensation"
-version = "1.13.0"
+version = "1.14.0"
 requires-python = ">=3.12"
 dependencies = [
     "matplotlib>=3.7.0",
