@@ -160,6 +160,15 @@ def test_steady_mean_empty_mask_raises() -> None:
         compute_interference(df, _CONFIG_STEADY, steady_mask=empty_mask)
 
 
+def test_steady_mean_mismatched_mask_length_raises() -> None:
+    """A steady_mask whose length differs from df.height should raise ValueError."""
+    df = _make_df(n_rows=5)
+    bad_mask = pl.Series([True, False, True])  # length 3, df has 5 rows
+    msg = "steady_mask must have the same number of rows"
+    with pytest.raises(ValueError, match=msg):
+        compute_interference(df, _CONFIG_STEADY, steady_mask=bad_mask)
+
+
 # ---------------------------------------------------------------------------
 # Output dtype and name
 # ---------------------------------------------------------------------------

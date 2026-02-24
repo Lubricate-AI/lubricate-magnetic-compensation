@@ -64,8 +64,15 @@ def _steady_mean_baseline(
     Raises
     ------
     ValueError
+        If ``steady_mask`` length does not match ``df.height``.
+    ValueError
         If ``steady_mask`` selects no rows.
     """
+    if steady_mask is not None and len(steady_mask) != df.height:
+        raise ValueError(
+            "steady_mask must have the same number of rows as df; "
+            f"got {len(steady_mask)} vs {df.height}."
+        )
     if steady_mask is not None:
         b_values = df[COL_BTOTAL].filter(steady_mask)
     else:
