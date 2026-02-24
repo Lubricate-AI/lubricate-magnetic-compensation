@@ -35,6 +35,7 @@ from lmc.columns import (
     COL_YAW_RATE,
 )
 from lmc.config import PipelineConfig
+from lmc.validation import validate_dataframe
 
 
 def _direction_cosines(
@@ -121,12 +122,17 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
 
     Raises
     ------
+    TypeError
+        If ``df`` is not a ``polars.DataFrame``.
     ValueError
-        If ``config.model_terms == "c"`` and ``df`` has fewer than 2 rows,
-        or if any ``B_total`` value is non-positive,
+        If DataFrame validation fails (missing columns, wrong dtypes, nulls,
+        non-monotonic time), or if ``config.model_terms == "c"`` and ``df``
+        has fewer than 2 rows, or if any ``B_total`` value is non-positive,
         or if ``config.use_imu_rates`` is ``True`` and any of the three IMU
-        columns (``roll_rate``, ``pitch_rate``, ``yaw_rate``) are absent.
+        columns are absent.
     """
+    validate_dataframe(df)
+
     if config.model_terms == "c" and len(df) < 2:
         raise ValueError(
             "At least 2 rows are required to compute eddy current terms"

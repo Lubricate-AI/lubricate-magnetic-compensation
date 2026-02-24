@@ -8,6 +8,7 @@ import polars as pl
 import pytest
 
 from lmc.columns import (
+    COL_ALT,
     COL_BTOTAL,
     COL_BX,
     COL_BY,
@@ -67,6 +68,7 @@ def _make_df(
             COL_TIME: [float(i) for i in range(n)],
             COL_LAT: [45.0] * n,
             COL_LON: [-75.0] * n,
+            COL_ALT: [300.0] * n,
             COL_BTOTAL: [btotal] * n,
             COL_BX: [bx] * n,
             COL_BY: [by] * n,
@@ -91,6 +93,7 @@ def _make_linear_df() -> pl.DataFrame:
             COL_TIME: [0.0, 1.0, 2.0],
             COL_LAT: [45.0, 45.0, 45.0],
             COL_LON: [-75.0, -75.0, -75.0],
+            COL_ALT: [300.0, 300.0, 300.0],
             COL_BTOTAL: [btotal, btotal, btotal],
             COL_BX: [cx * btotal for cx in cos_x_vals],
             COL_BY: [cy * btotal for cy in cos_y_vals],
@@ -280,6 +283,7 @@ def test_raises_zero_b_total() -> None:
             COL_TIME: [0.0, 1.0],
             COL_LAT: [45.0, 45.0],
             COL_LON: [-75.0, -75.0],
+            COL_ALT: [300.0, 300.0],
             COL_BTOTAL: [0.0, 5.0],
             COL_BX: [0.0, 3.0],
             COL_BY: [0.0, 4.0],
@@ -296,6 +300,7 @@ def test_raises_negative_b_total() -> None:
             COL_TIME: [0.0, 1.0],
             COL_LAT: [45.0, 45.0],
             COL_LON: [-75.0, -75.0],
+            COL_ALT: [300.0, 300.0],
             COL_BTOTAL: [-1.0, 5.0],
             COL_BX: [-1.0, 3.0],
             COL_BY: [0.0, 4.0],
@@ -303,6 +308,33 @@ def test_raises_negative_b_total() -> None:
         }
     )
     with pytest.raises(ValueError, match="strictly positive"):
+        build_feature_matrix(df, _CONFIG_A)
+
+
+def test_raises_type_error_for_non_dataframe() -> None:
+    with pytest.raises(TypeError):
+        build_feature_matrix({"not": "a dataframe"}, _CONFIG_A)  # type: ignore
+
+
+def test_raises_on_missing_column() -> None:
+    df = _make_df().drop(COL_BTOTAL)
+    with pytest.raises(ValueError, match="Missing required columns"):
+        build_feature_matrix(df, _CONFIG_A)
+
+
+def test_raises_on_null_in_required_column() -> None:
+    df = _make_df().with_columns(
+        pl.Series(COL_BTOTAL, [None, 5.0, 5.0, 5.0, 5.0], dtype=pl.Float64)
+    )
+    with pytest.raises(ValueError, match="null values"):
+        build_feature_matrix(df, _CONFIG_A)
+
+
+def test_raises_on_non_monotonic_time() -> None:
+    df = _make_df().with_columns(
+        pl.Series(COL_TIME, [0.0, 2.0, 1.0, 3.0, 4.0], dtype=pl.Float64)
+    )
+    with pytest.raises(ValueError, match="monotonically increasing"):
         build_feature_matrix(df, _CONFIG_A)
 
 

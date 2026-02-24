@@ -44,8 +44,7 @@ A repo for calculating magnetic compensation coefficients using the Tolles-Lawso
 
 ### Available Make Commands
 - `make install` - Install/update dependencies
-- `make lint` - Run all linting (ruff, typos, yamllint)
-- `make type-checking` - Run pyright
+- `make lint` - Run all linting (ruff, typos, yamllint, type-checking)
 - `make format` - Auto-format code
 - `make test` - Run pytest
 

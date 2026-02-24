@@ -11,6 +11,7 @@ import pytest
 
 from lmc.calibration import calibrate
 from lmc.columns import (
+    COL_ALT,
     COL_BTOTAL,
     COL_BX,
     COL_BY,
@@ -60,6 +61,7 @@ def _make_synthetic_df(n_rows: int, rng: np.random.Generator) -> pl.DataFrame:
             COL_TIME: np.arange(n_rows, dtype=np.float64),
             COL_LAT: np.full(n_rows, 45.0),
             COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
             COL_BTOTAL: np.full(n_rows, b_total),
             COL_BX: bx,
             COL_BY: by,
