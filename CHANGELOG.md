@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.12.0 (2026-02-24)
+
+### Features
+
+- Validate steady_mask length in _steady_mean_baseline
+  ([#41](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/41),
+  [`32b4b45`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/32b4b45345982b2f86edf7bc3601383fc0095130))
+
+
 ## v1.11.0 (2026-02-24)
 
 ### Bug Fixes
