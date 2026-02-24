@@ -83,27 +83,28 @@ where $\boldsymbol{\omega} = (\omega_\text{roll}, \omega_\text{pitch}, \omega_\t
 are the IMU body-frame angular rates. Expanding each component in index notation:
 
 $$
-\dot{c}_j = \sum_k \varepsilon_{jk\ell}\, \omega_k\, c_\ell
+\dot{c}_j = \sum_k \sum_\ell \varepsilon_{jk\ell}\, \omega_k\, c_\ell
 $$
 
 This shows that each $\dot{c}_j$ is a **linear combination** of the three angular
 rates, with direction-cosine amplitudes as coefficients. Because each $\dot{c}_j$
-is linear in $\boldsymbol{\omega}$, the angular rates excite exactly the same eddy
-currents as the true cosine time-derivatives. When the 9 eddy-current coefficients
-are fitted by least squares, the regression absorbs the proportionality
-transformation — the fitted coefficients take on different numerical values, but
-the model's explanatory power and compensation accuracy are preserved.
+is linear in $\boldsymbol{\omega}$, the angular rates excite eddy currents through
+the same physical mechanisms as the true cosine time-derivatives, and because the
+relationship is linear, the least-squares regression can absorb the transformation
+— the fitted coefficients take on different numerical values, but the model's
+explanatory power and compensation accuracy are preserved.
 
-In practice, IMU angular rates are typically noiseless, available at high sample
-rates, and present in all flight datasets. Numerical differentiation of direction
-cosines via `numpy.gradient` can amplify sensor noise and is sensitive to sampling
-rate irregularities. Passing `use_imu_rates=True` to `compute_interference` avoids
-both artifacts by substituting IMU body-rate channels directly into the eddy-current
-columns of the A-matrix.
+In practice, IMU angular rates typically have much lower noise than numerically
+differentiated direction cosines, are available at high sample rates, and are
+present in all flight datasets. Numerical differentiation via `numpy.gradient` can
+amplify sensor noise and is sensitive to sampling rate irregularities. Setting
+`use_imu_rates=True` in `PipelineConfig` avoids both artifacts by substituting IMU
+body-rate channels directly into the eddy-current columns of the A-matrix
+(see Gnadt et al., 2022).
 
 !!! note
-    Because the proportionality factors between $\boldsymbol{\omega}$ and
-    $\dot{\mathbf{c}}$ are absorbed into the fitted coefficients, the coefficient
+    Because the linear transformation relating $\boldsymbol{\omega}$ and
+    $\dot{\mathbf{c}}$ is absorbed into the fitted coefficients, the coefficient
     magnitudes obtained with `use_imu_rates=True` are not directly comparable to
     those obtained with numerical differentiation. The compensation accuracy is
     equivalent; only the coefficient interpretation differs.
