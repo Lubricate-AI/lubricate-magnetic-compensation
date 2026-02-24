@@ -127,6 +127,12 @@ def _auto_detect_segments(df: pl.DataFrame, config: PipelineConfig) -> list[Segm
     if COL_TIME not in df.columns:
         raise ValueError(f"Auto-detect mode requires column '{COL_TIME}'.")
 
+    if len(df) < 2:
+        raise ValueError(
+            "Auto-detect segmentation requires at least 2 rows to compute "
+            "attitude rates via np.gradient."
+        )
+
     headings = np.asarray(df[COL_HEADING].to_numpy(), dtype=np.float64)
     centres = _resolve_bin_centres(config, headings)
 
