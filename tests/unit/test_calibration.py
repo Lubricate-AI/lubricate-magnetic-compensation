@@ -252,3 +252,21 @@ def test_missing_delta_b_raises() -> None:
     df_no_delta = df.drop(COL_DELTA_B)
     with pytest.raises(ValueError, match=COL_DELTA_B):
         calibrate(df_no_delta, segments, _CONFIG_A)
+
+
+def test_zero_length_segment_raises() -> None:
+    """Zero-length segment (start_idx == end_idx) should raise ValueError."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, _ = _make_synthetic_data(c_true, _CONFIG_A)
+    bad_seg = Segment(maneuver="steady", heading="N", start_idx=5, end_idx=5)
+    with pytest.raises(ValueError, match="invalid bounds"):
+        calibrate(df, [bad_seg], _CONFIG_A)
+
+
+def test_out_of_range_segment_raises() -> None:
+    """Out-of-range segment (end_idx > len(df)) should raise ValueError."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, _ = _make_synthetic_data(c_true, _CONFIG_A)
+    bad_seg = Segment(maneuver="steady", heading="N", start_idx=0, end_idx=len(df) + 1)
+    with pytest.raises(ValueError, match="invalid bounds"):
+        calibrate(df, [bad_seg], _CONFIG_A)

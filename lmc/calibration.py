@@ -64,7 +64,9 @@ def calibrate(
     Raises
     ------
     ValueError
-        If ``segments`` is empty or if ``COL_DELTA_B`` is absent from ``df``.
+        If ``segments`` is empty, if ``COL_DELTA_B`` is absent from ``df``,
+        if any segment has ``start_idx >= end_idx`` or indices out of range for ``df``,
+        or if all segments produce empty slices.
     """
     if not segments:
         raise ValueError("segments must be non-empty; cannot calibrate with no data.")
@@ -79,6 +81,12 @@ def calibrate(
     db_blocks: list[npt.NDArray[np.float64]] = []
 
     for seg in segments:
+        if not (0 <= seg.start_idx < seg.end_idx <= len(df)):
+            raise ValueError(
+                f"Segment {seg!r} has invalid bounds for a DataFrame "
+                f"of length {len(df)}. "
+                "Required: 0 <= start_idx < end_idx <= len(df)."
+            )
         segment_df = df.slice(seg.start_idx, seg.end_idx - seg.start_idx)
         a_seg = build_feature_matrix(segment_df, config).to_numpy()
         db_seg = segment_df[COL_DELTA_B].to_numpy().astype(np.float64)
@@ -87,6 +95,12 @@ def calibrate(
 
     A: npt.NDArray[np.float64] = np.vstack(a_blocks)
     dB: npt.NDArray[np.float64] = np.concatenate(db_blocks)
+
+    if A.shape[0] == 0:
+        raise ValueError(
+            "All segments produced empty slices; cannot calibrate with zero rows."
+        )
+
     n_terms = A.shape[1]
 
     condition_number = float(np.linalg.cond(A))
