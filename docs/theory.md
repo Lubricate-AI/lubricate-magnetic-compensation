@@ -70,6 +70,44 @@ $$
 All nine combinations of $i, j \in \{x, y, z\}$ contribute, giving nine eddy
 terms.
 
+### IMU Angular-Rate Substitution
+
+The time derivative of a direction cosine vector is given by the cross-product of
+the angular velocity with the cosine vector:
+
+$$
+\dot{\mathbf{c}} = \boldsymbol{\omega} \times \mathbf{c}
+$$
+
+where $\boldsymbol{\omega} = (\omega_\text{roll}, \omega_\text{pitch}, \omega_\text{yaw})$
+are the IMU body-frame angular rates. Expanding each component in index notation:
+
+$$
+\dot{c}_j = \sum_k \varepsilon_{jk\ell}\, \omega_k\, c_\ell
+$$
+
+This shows that each $\dot{c}_j$ is a **linear combination** of the three angular
+rates, with direction-cosine amplitudes as coefficients. Because each $\dot{c}_j$
+is linear in $\boldsymbol{\omega}$, the angular rates excite exactly the same eddy
+currents as the true cosine time-derivatives. When the 9 eddy-current coefficients
+are fitted by least squares, the regression absorbs the proportionality
+transformation — the fitted coefficients take on different numerical values, but
+the model's explanatory power and compensation accuracy are preserved.
+
+In practice, IMU angular rates are typically noiseless, available at high sample
+rates, and present in all flight datasets. Numerical differentiation of direction
+cosines via `numpy.gradient` can amplify sensor noise and is sensitive to sampling
+rate irregularities. Passing `use_imu_rates=True` to `compute_interference` avoids
+both artifacts by substituting IMU body-rate channels directly into the eddy-current
+columns of the A-matrix.
+
+!!! note
+    Because the proportionality factors between $\boldsymbol{\omega}$ and
+    $\dot{\mathbf{c}}$ are absorbed into the fitted coefficients, the coefficient
+    magnitudes obtained with `use_imu_rates=True` are not directly comparable to
+    those obtained with numerical differentiation. The compensation accuracy is
+    equivalent; only the coefficient interpretation differs.
+
 ---
 
 ## Direction Cosines
@@ -92,7 +130,10 @@ intensity.  This normalisation is key: it separates the geophysical signal
 
 Time derivatives $\dot{\cos}_i = d\cos_i/dt$ are estimated numerically using
 second-order central differences via `numpy.gradient`, with explicit time
-coordinates to handle non-uniform sampling rates.
+coordinates to handle non-uniform sampling rates. Alternatively, pass
+`use_imu_rates=True` to substitute IMU body-rate channels directly; see
+[IMU Angular-Rate Substitution](#imu-angular-rate-substitution) for the physical
+justification.
 
 ---
 
