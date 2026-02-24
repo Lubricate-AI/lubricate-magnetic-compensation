@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.13.0 (2026-02-24)
+
+### Features
+
+- Guard auto-detect segmentation against under-sized DataFrames
+  ([#42](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/42),
+  [`fde1ff6`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fde1ff65534695391e8e9cbf6a0f08d41263cacb))
+
+
 ## v1.12.0 (2026-02-24)
 
 ### Features
