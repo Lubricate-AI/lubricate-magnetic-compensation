@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 from pathlib import Path
 from typing import Annotated, Literal, cast
 
@@ -137,7 +138,7 @@ def calibrate_cmd(
         raise typer.Exit(code=1) from None
 
 
-def _validate_coef_dict(data: dict[str, object]) -> None:
+def _validate_coef_dict(data: object) -> None:
     """Validate the structure of a coefficients JSON dict.
 
     Raises
@@ -146,23 +147,39 @@ def _validate_coef_dict(data: dict[str, object]) -> None:
         If any validation check fails. All errors are collected and
         reported together.
     """
+    if not isinstance(data, dict):
+        raise ValueError(
+            "Coefficients JSON validation failed:\n"
+            f"  - Expected a JSON object at the root, got {type(data).__name__}."
+        )
+
+    d: dict[str, object] = cast(dict[str, object], data)
     errors: list[str] = []
 
     required_keys = {"model_terms", "coefficients", "n_terms", "condition_number"}
-    missing_keys = required_keys - data.keys()
+    missing_keys = required_keys - d.keys()
     if missing_keys:
         errors.append(f"Missing required keys: {sorted(missing_keys)}.")
 
-    if not missing_keys:
-        model_terms = data["model_terms"]
-        if model_terms not in _EXPECTED_N_TERMS:
+    # Validate each present key independently so all errors are reported.
+    valid_model_terms: str | None = None
+    if "model_terms" in d:
+        model_terms = d["model_terms"]
+        if not isinstance(model_terms, str):
+            errors.append(
+                f"'model_terms' must be a string, got {type(model_terms).__name__}."
+            )
+        elif model_terms not in _EXPECTED_N_TERMS:
             errors.append(
                 f"'model_terms' must be one of {list(_EXPECTED_N_TERMS)!r}, "
                 f"got {model_terms!r}."
             )
+        else:
+            valid_model_terms = model_terms
 
-        coefs = data["coefficients"]
-        coefs_list: list[object] | None = None
+    coefs_list: list[object] | None = None
+    if "coefficients" in d:
+        coefs = d["coefficients"]
         if not isinstance(coefs, list) or not coefs:
             errors.append("'coefficients' must be a non-empty list of numbers.")
         else:
@@ -170,27 +187,39 @@ def _validate_coef_dict(data: dict[str, object]) -> None:
             if not all(isinstance(v, (int, float)) for v in coefs_list):
                 errors.append("'coefficients' must contain only numbers.")
 
-        n_terms = data["n_terms"]
-        if not isinstance(n_terms, int):
+    valid_n_terms: int | None = None
+    if "n_terms" in d:
+        n_terms = d["n_terms"]
+        if isinstance(n_terms, bool) or not isinstance(n_terms, int):
             errors.append(
                 f"'n_terms' must be an integer, got {type(n_terms).__name__}."
             )
-        elif coefs_list is not None and len(coefs_list) != n_terms:
-            coefs_len = len(coefs_list)
+        else:
+            valid_n_terms = n_terms
+            if coefs_list is not None and len(coefs_list) != n_terms:
+                coefs_len = len(coefs_list)
+                errors.append(
+                    f"'n_terms' is {n_terms} but 'coefficients' "
+                    f"has {coefs_len} entries."
+                )
+
+    if valid_model_terms is not None and valid_n_terms is not None:
+        expected = _EXPECTED_N_TERMS[valid_model_terms]
+        if valid_n_terms != expected:
             errors.append(
-                f"'n_terms' is {n_terms} but 'coefficients' has {coefs_len} entries."
+                f"'n_terms' for model_terms={valid_model_terms!r} must be "
+                f"{expected}, got {valid_n_terms}."
             )
 
-        if (
-            isinstance(model_terms, str)
-            and model_terms in _EXPECTED_N_TERMS
-            and isinstance(n_terms, int)
-            and n_terms != _EXPECTED_N_TERMS[model_terms]
-        ):
+    if "condition_number" in d:
+        cond = d["condition_number"]
+        if isinstance(cond, bool) or not isinstance(cond, (int, float)):
             errors.append(
-                f"'n_terms' for model_terms={model_terms!r} must be "
-                f"{_EXPECTED_N_TERMS[model_terms]}, got {n_terms}."
+                "'condition_number' must be a finite number, "
+                f"got {type(cond).__name__}."
             )
+        elif not math.isfinite(float(cond)):
+            errors.append(f"'condition_number' must be finite, got {cond!r}.")
 
     if errors:
         raise ValueError(
@@ -219,8 +248,9 @@ def compensate_cmd(
         df = pl.read_csv(input_csv)
         df = validate_dataframe(df)
 
-        coef_data: dict[str, object] = json.loads(coefficients.read_text())
-        _validate_coef_dict(coef_data)
+        raw_coef = json.loads(coefficients.read_text())
+        _validate_coef_dict(raw_coef)
+        coef_data = cast(dict[str, object], raw_coef)
         model_terms = cast(Literal["a", "b", "c"], coef_data["model_terms"])
         coefs = np.array(coef_data["coefficients"], dtype=np.float64)
         n_terms = int(coef_data["n_terms"])  # type: ignore[arg-type]
