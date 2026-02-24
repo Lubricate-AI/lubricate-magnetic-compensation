@@ -323,6 +323,21 @@ def test_auto_detect_missing_attitude_columns_raises() -> None:
         segment_fom(df, cfg)
 
 
+@pytest.mark.parametrize("n_rows", [0, 1])
+def test_auto_detect_too_few_rows_raises(n_rows: int) -> None:
+    df = pl.DataFrame(
+        {
+            COL_TIME: [float(i) for i in range(n_rows)],
+            COL_HEADING: [2.0] * n_rows,
+            COL_PITCH: [0.0] * n_rows,
+            COL_ROLL: [0.0] * n_rows,
+        }
+    )
+    cfg = PipelineConfig()
+    with pytest.raises(ValueError, match="2 rows"):
+        segment_fom(df, cfg)
+
+
 # ---------------------------------------------------------------------------
 # Heading estimation tests
 # ---------------------------------------------------------------------------
