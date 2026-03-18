@@ -62,7 +62,7 @@ def _make_df(
     n: int = _N_ROWS,
 ) -> pl.DataFrame:
     """Return a valid DataFrame with constant B field across ``n`` rows."""
-    btotal = math.sqrt(bx**2 + by**2 + bz**2)
+    btotal = 54000.0  # scalar magnetometer — intentionally != fluxgate magnitude
     return pl.DataFrame(
         {
             COL_TIME: [float(i) for i in range(n)],
@@ -81,23 +81,23 @@ def _make_linear_df() -> pl.DataFrame:
     """Return a DataFrame with linearly varying direction cosines.
 
     cos_x goes [0.6, 0.7, 0.8] across t = [0, 1, 2].
-    B vectors are constructed so that B_total stays positive and
+    B vectors are constructed so that fluxgate magnitude stays at 10.0 and
     direction cosines match the desired values at each row.
     """
     cos_x_vals = [0.6, 0.7, 0.8]
     cos_y_vals = [0.8, 0.7, 0.6]
     cos_z_vals = [0.0, 0.0, 0.0]
-    btotal = 10.0
+    fluxgate_mag = 10.0
     return pl.DataFrame(
         {
             COL_TIME: [0.0, 1.0, 2.0],
             COL_LAT: [45.0, 45.0, 45.0],
             COL_LON: [-75.0, -75.0, -75.0],
             COL_ALT: [300.0, 300.0, 300.0],
-            COL_BTOTAL: [btotal, btotal, btotal],
-            COL_BX: [cx * btotal for cx in cos_x_vals],
-            COL_BY: [cy * btotal for cy in cos_y_vals],
-            COL_BZ: [cz * btotal for cz in cos_z_vals],
+            COL_BTOTAL: [54000.0, 54000.0, 54000.0],
+            COL_BX: [cx * fluxgate_mag for cx in cos_x_vals],
+            COL_BY: [cy * fluxgate_mag for cy in cos_y_vals],
+            COL_BZ: [cz * fluxgate_mag for cz in cos_z_vals],
         }
     )
 
