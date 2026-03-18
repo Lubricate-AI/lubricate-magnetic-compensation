@@ -105,6 +105,20 @@ def test_validate_dataframe_raises_on_non_monotonic_time() -> None:
         validate_dataframe(broken)
 
 
+def test_validate_dataframe_raises_on_non_positive_b_total() -> None:
+    values = [50000.0, 0.0, 50002.0, 50003.0, 50004.0]
+    df = _make_valid_df().with_columns(pl.Series(COL_BTOTAL, values, dtype=pl.Float64))
+    with pytest.raises(ValueError, match="strictly positive"):
+        validate_dataframe(df)
+
+
+def test_validate_dataframe_raises_on_negative_b_total() -> None:
+    values = [50000.0, -1.0, 50002.0, 50003.0, 50004.0]
+    df = _make_valid_df().with_columns(pl.Series(COL_BTOTAL, values, dtype=pl.Float64))
+    with pytest.raises(ValueError, match="strictly positive"):
+        validate_dataframe(df)
+
+
 def test_validate_dataframe_raises_on_duplicate_timestamps() -> None:
     df = _make_valid_df()
     broken = df.with_columns(

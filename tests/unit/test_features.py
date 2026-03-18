@@ -45,7 +45,6 @@ _N_ROWS = 5
 _BX = 3.0
 _BY = 4.0
 _BZ = 0.0
-_BTOTAL = 5.0  # sqrt(3² + 4² + 0²)
 _COS_X = 0.6  # 3/5
 _COS_Y = 0.8  # 4/5
 _COS_Z = 0.0  # 0/5
@@ -62,7 +61,7 @@ def _make_df(
     n: int = _N_ROWS,
 ) -> pl.DataFrame:
     """Return a valid DataFrame with constant B field across ``n`` rows."""
-    btotal = math.sqrt(bx**2 + by**2 + bz**2)
+    btotal = 54000.0  # scalar magnetometer — intentionally != fluxgate magnitude
     return pl.DataFrame(
         {
             COL_TIME: [float(i) for i in range(n)],
@@ -80,24 +79,27 @@ def _make_df(
 def _make_linear_df() -> pl.DataFrame:
     """Return a DataFrame with linearly varying direction cosines.
 
-    cos_x goes [0.6, 0.7, 0.8] across t = [0, 1, 2].
-    B vectors are constructed so that B_total stays positive and
+    cos_x goes [0.6, 0.8, 1.0] across t = [0, 1, 2].
+    cos_y goes [0.8, 0.6, 0.0].
+    cos_z = 0.0 everywhere.
+    Each row is a unit vector so normalisation is a no-op.
+    B vectors are constructed so that fluxgate magnitude stays at 10.0 and
     direction cosines match the desired values at each row.
     """
-    cos_x_vals = [0.6, 0.7, 0.8]
-    cos_y_vals = [0.8, 0.7, 0.6]
+    cos_x_vals = [0.6, 0.8, 1.0]
+    cos_y_vals = [0.8, 0.6, 0.0]
     cos_z_vals = [0.0, 0.0, 0.0]
-    btotal = 10.0
+    fluxgate_mag = 10.0
     return pl.DataFrame(
         {
             COL_TIME: [0.0, 1.0, 2.0],
             COL_LAT: [45.0, 45.0, 45.0],
             COL_LON: [-75.0, -75.0, -75.0],
             COL_ALT: [300.0, 300.0, 300.0],
-            COL_BTOTAL: [btotal, btotal, btotal],
-            COL_BX: [cx * btotal for cx in cos_x_vals],
-            COL_BY: [cy * btotal for cy in cos_y_vals],
-            COL_BZ: [cz * btotal for cz in cos_z_vals],
+            COL_BTOTAL: [54000.0, 54000.0, 54000.0],
+            COL_BX: [cx * fluxgate_mag for cx in cos_x_vals],
+            COL_BY: [cy * fluxgate_mag for cy in cos_y_vals],
+            COL_BZ: [cz * fluxgate_mag for cz in cos_z_vals],
         }
     )
 
@@ -191,6 +193,17 @@ def test_direction_cosines_values() -> None:
     )
 
 
+def test_direction_cosines_unit_vector() -> None:
+    """cos_x^2 + cos_y^2 + cos_z^2 must be approximately 1.0 for all rows."""
+    df = _make_df()
+    result = build_feature_matrix(df, _CONFIG_A)
+    cos_x = result[COL_COS_X].to_numpy()
+    cos_y = result[COL_COS_Y].to_numpy()
+    cos_z = result[COL_COS_Z].to_numpy()
+    norms = cos_x**2 + cos_y**2 + cos_z**2
+    assert all(math.isclose(n, 1.0, rel_tol=1e-9) for n in norms)
+
+
 # ---------------------------------------------------------------------------
 # Value tests — induced terms
 # ---------------------------------------------------------------------------
@@ -246,15 +259,15 @@ def test_eddy_terms_values_linear_signal() -> None:
     df = _make_linear_df()
     result = build_feature_matrix(df, _CONFIG_C)
 
-    # cos_x = [0.6, 0.7, 0.8] over t=[0,1,2]
-    # np.gradient central diff at index 1: (0.8 - 0.6) / (2*1) = 0.1
-    # cos_y = [0.8, 0.7, 0.6] → dcos_y at index 1 = (0.6 - 0.8) / 2 = -0.1
+    # cos_x = [0.6, 0.8, 1.0] over t=[0,1,2]
+    # np.gradient central diff at index 1: (1.0 - 0.6) / (2*1) = 0.2
+    # cos_y = [0.8, 0.6, 0.0] → dcos_y at index 1 = (0.0 - 0.8) / 2 = -0.4
     # cos_z = [0.0, 0.0, 0.0] → dcos_z = 0.0
-    dcos_x_mid = 0.1
-    dcos_y_mid = -0.1
+    dcos_x_mid = 0.2
+    dcos_y_mid = -0.4
     dcos_z_mid = 0.0
-    cos_x_mid = 0.7
-    cos_y_mid = 0.7
+    cos_x_mid = 0.8
+    cos_y_mid = 0.6
 
     mid = 1  # middle row index
 
@@ -277,33 +290,17 @@ def test_eddy_terms_values_linear_signal() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_raises_zero_b_total() -> None:
+def test_raises_zero_fluxgate_magnitude() -> None:
+    """All-zero fluxgate components -> zero magnitude -> ValueError."""
     df = pl.DataFrame(
         {
             COL_TIME: [0.0, 1.0],
             COL_LAT: [45.0, 45.0],
             COL_LON: [-75.0, -75.0],
             COL_ALT: [300.0, 300.0],
-            COL_BTOTAL: [0.0, 5.0],
-            COL_BX: [0.0, 3.0],
-            COL_BY: [0.0, 4.0],
-            COL_BZ: [0.0, 0.0],
-        }
-    )
-    with pytest.raises(ValueError, match="strictly positive"):
-        build_feature_matrix(df, _CONFIG_A)
-
-
-def test_raises_negative_b_total() -> None:
-    df = pl.DataFrame(
-        {
-            COL_TIME: [0.0, 1.0],
-            COL_LAT: [45.0, 45.0],
-            COL_LON: [-75.0, -75.0],
-            COL_ALT: [300.0, 300.0],
-            COL_BTOTAL: [-1.0, 5.0],
-            COL_BX: [-1.0, 3.0],
-            COL_BY: [0.0, 4.0],
+            COL_BTOTAL: [54000.0, 54000.0],
+            COL_BX: [0.0, 0.0],
+            COL_BY: [0.0, 0.0],
             COL_BZ: [0.0, 0.0],
         }
     )

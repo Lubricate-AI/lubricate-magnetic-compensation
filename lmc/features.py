@@ -7,7 +7,6 @@ import numpy.typing as npt
 import polars as pl
 
 from lmc.columns import (
-    COL_BTOTAL,
     COL_BX,
     COL_BY,
     COL_BZ,
@@ -45,17 +44,18 @@ def _direction_cosines(
 
     Returns (cos_x, cos_y, cos_z) = (B_x/|B|, B_y/|B|, B_z/|B|).
     """
-    b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
     b_x = np.asarray(df[COL_BX].to_numpy(), dtype=np.float64)
     b_y = np.asarray(df[COL_BY].to_numpy(), dtype=np.float64)
     b_z = np.asarray(df[COL_BZ].to_numpy(), dtype=np.float64)
 
-    if np.any(b_total <= 0.0):
-        raise ValueError("B_total must be strictly positive for all rows.")
+    b_magnitude = np.sqrt(b_x**2 + b_y**2 + b_z**2)
 
-    cos_x = b_x / b_total
-    cos_y = b_y / b_total
-    cos_z = b_z / b_total
+    if np.any(b_magnitude <= 0.0):
+        raise ValueError("Fluxgate magnitude must be strictly positive for all rows.")
+
+    cos_x = b_x / b_magnitude
+    cos_y = b_y / b_magnitude
+    cos_z = b_z / b_magnitude
 
     return (
         np.asarray(cos_x, dtype=np.float64),

@@ -4,3 +4,5 @@ ANE = "ANE"
 # FOM = Figure of Merit calibration flight pattern (aviation domain term)
 fom = "fom"
 FOM = "FOM"
+# NumPy type hints - allow "ND" prefix (NDArray)
+ND = "ND"

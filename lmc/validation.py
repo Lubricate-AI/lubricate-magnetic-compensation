@@ -1,8 +1,10 @@
 """DataFrame validation against the lmc input schema."""
 
+import numpy as np
 import polars as pl
 
 from lmc.columns import (
+    COL_BTOTAL,
     COL_PITCH_RATE,
     COL_ROLL_RATE,
     COL_TIME,
@@ -75,6 +77,14 @@ def validate_dataframe(df: object) -> pl.DataFrame:
             errors.append(f"Columns contain null values: {null_cols}.")
 
     _check_optional_imu_dtypes(df, errors)
+
+    if (
+        COL_BTOTAL in df.columns
+        and df[COL_BTOTAL].dtype == pl.Float64
+        and df[COL_BTOTAL].null_count() == 0
+        and np.any(np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64) <= 0.0)
+    ):
+        errors.append(f"Column '{COL_BTOTAL}' must be strictly positive for all rows.")
 
     if COL_TIME in df.columns and df[COL_TIME].dtype == pl.Float64:
         diffs = df[COL_TIME].diff().drop_nulls()
