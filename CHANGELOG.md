@@ -2,6 +2,53 @@
 
 <!-- version list -->
 
+## v1.15.1 (2026-03-18)
+
+### Bug Fixes
+
+- Move B_total positivity check to validate_dataframe()
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+- Normalize direction cosines by fluxgate magnitude
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+- Normalize direction cosines by fluxgate magnitude, not B_total
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+### Chores
+
+- Add ND to typos.toml allow-list
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+- Remove plan docs (moved to issue #46 comments)
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+- Update uv.lock for v1.15.0
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+### Documentation
+
+- Add design and implementation plan for cosine normalization fix
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+### Testing
+
+- Add unit-vector assertion and zero-fluxgate error test
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+- Use realistic COL_BTOTAL in feature test fixtures
+  ([#47](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/47),
+  [`77a619c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/77a619c1d785f418207a3ab5ff21d793fae3ed73))
+
+
 ## v1.15.0 (2026-02-24)
 
 ### Bug Fixes
