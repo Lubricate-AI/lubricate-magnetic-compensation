@@ -9,7 +9,7 @@ import pytest
 
 from lmc.adaptive import (
     AdaptiveCalibrationResult,
-    _rolling_variance,
+    _rolling_variance,  # pyright: ignore[reportPrivateUsage]
     calibrate_adaptive_maneuvers,
 )
 from lmc.calibration import CalibrationResult

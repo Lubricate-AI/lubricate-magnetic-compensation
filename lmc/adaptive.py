@@ -45,7 +45,7 @@ class AdaptiveCalibrationResult:
     n_terms: int
 
 
-def _rolling_variance(
+def _rolling_variance(  # pyright: ignore[reportUnusedFunction]
     arr: npt.NDArray[np.float64], window: int
 ) -> npt.NDArray[np.float64]:
     """Compute causal rolling population variance.
