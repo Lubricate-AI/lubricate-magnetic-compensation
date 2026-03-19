@@ -28,13 +28,14 @@ class PipelineConfig(BaseModel):
         gt=0.0,
         description="Upper cutoff frequency of the band-pass filter [Hz].",
     )
-    model_terms: Literal["a", "b", "c"] = Field(
+    model_terms: Literal["a", "b", "c", "d"] = Field(
         default="c",
         description=(
             "Tolles-Lawson term set: "
             "'a' = permanent (3 terms), "
             "'b' = permanent + induced (9 terms), "
-            "'c' = full permanent + induced + eddy (18 terms)."
+            "'c' = full permanent + induced + eddy (18 terms), "
+            "'d' = full permanent + induced + eddy + rate derivatives (21 terms)."
         ),
     )
     earth_field_method: Literal["igrf", "steady_mean"] = Field(
@@ -96,7 +97,7 @@ class PipelineConfig(BaseModel):
         description=(
             "When True, use IMU angular rate channels (roll_rate, pitch_rate, yaw_rate)"
             " in place of numerically-differentiated direction cosines for eddy-current"
-            " term estimation. Only applied when model_terms='c'. "
+            " term estimation. Only applied when model_terms='c' or 'd'. "
             "Requires all three IMU columns to be present in the input DataFrame."
         ),
     )

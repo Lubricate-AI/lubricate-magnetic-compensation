@@ -31,6 +31,9 @@ from lmc.columns import (
     COL_COS_Z_DCOS_X,
     COL_COS_Z_DCOS_Y,
     COL_COS_Z_DCOS_Z,
+    COL_DCOS_X,
+    COL_DCOS_Y,
+    COL_DCOS_Z,
     COL_LAT,
     COL_LON,
     COL_PITCH_RATE,
@@ -52,6 +55,7 @@ _COS_Z = 0.0  # 0/5
 _CONFIG_A = PipelineConfig(model_terms="a")
 _CONFIG_B = PipelineConfig(model_terms="b")
 _CONFIG_C = PipelineConfig(model_terms="c")
+_CONFIG_D = PipelineConfig(model_terms="d")
 
 
 def _make_df(
@@ -156,6 +160,35 @@ def test_terms_c_shape() -> None:
         COL_COS_Z_DCOS_X,
         COL_COS_Z_DCOS_Y,
         COL_COS_Z_DCOS_Z,
+    ]
+
+
+def test_terms_d_shape() -> None:
+    df = _make_df()
+    result = build_feature_matrix(df, _CONFIG_D)
+    assert result.shape == (_N_ROWS, 21)
+    assert result.columns == [
+        COL_COS_X,
+        COL_COS_Y,
+        COL_COS_Z,
+        COL_COS_X2,
+        COL_COS_XY,
+        COL_COS_XZ,
+        COL_COS_Y2,
+        COL_COS_YZ,
+        COL_COS_Z2,
+        COL_COS_X_DCOS_X,
+        COL_COS_X_DCOS_Y,
+        COL_COS_X_DCOS_Z,
+        COL_COS_Y_DCOS_X,
+        COL_COS_Y_DCOS_Y,
+        COL_COS_Y_DCOS_Z,
+        COL_COS_Z_DCOS_X,
+        COL_COS_Z_DCOS_Y,
+        COL_COS_Z_DCOS_Z,
+        COL_DCOS_X,
+        COL_DCOS_Y,
+        COL_DCOS_Z,
     ]
 
 

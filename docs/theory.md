@@ -217,17 +217,18 @@ contribute to the mean.
 
 ## The Design Matrix (A-matrix)
 
-The full Tolles-Lawson interference model is linear in the 18 derived features.
+The full Tolles-Lawson interference model is linear in the derived features.
 `build_feature_matrix` assembles these into a design matrix $\mathbf{A}$ with one
 row per measurement epoch and one column per feature.
 
-Three term sets are supported, selected via `PipelineConfig.model_terms`:
+Four term sets are supported, selected via `PipelineConfig.model_terms`:
 
 | `model_terms` | Terms included | Columns |
 |:---:|---|:---:|
 | `"a"` | Permanent only | 3 |
 | `"b"` | Permanent + induced | 9 |
 | `"c"` | Permanent + induced + eddy | 18 |
+| `"d"` | Permanent + induced + eddy + rate derivatives | 21 |
 
 The full column layout for `"c"`:
 
@@ -238,6 +239,19 @@ $$
 \underbrace{\cos_x\dot{\cos}_x,\; \cos_x\dot{\cos}_y,\; \ldots,\; \cos_z\dot{\cos}_z}_{\text{eddy (9)}}
 \Bigr]
 $$
+
+The extended layout for `"d"` appends the three raw direction cosine
+time-derivatives as standalone features:
+
+$$
+\mathbf{A}_d = \Bigl[
+\mathbf{A}_c,\;
+\underbrace{\dot{\cos}_x,\; \dot{\cos}_y,\; \dot{\cos}_z}_{\text{rate derivatives (3)}}
+\Bigr]
+$$
+
+These additional terms capture attitude rate effects that are not fully
+represented by the eddy-current cross-products alone.
 
 ---
 
@@ -252,7 +266,7 @@ $$
 $$
 
 where $\boldsymbol{\beta} \in \mathbb{R}^k$ is the vector of Tolles-Lawson
-coefficients ($k = 3, 9$, or $18$) and $\boldsymbol{\varepsilon}$ is measurement
+coefficients ($k = 3, 9, 18$, or $21$) and $\boldsymbol{\varepsilon}$ is measurement
 noise.
 
 ### Ordinary least squares

@@ -12,7 +12,7 @@ A Python library for aircraft magnetic compensation using the Tolles-Lawson mode
 
 ## Features
 
-- Three Tolles-Lawson term sets: permanent (`a`, 3 terms), permanent + induced (`b`, 9 terms), full (`c`, 18 terms)
+- Four Tolles-Lawson term sets: permanent (`a`, 3 terms), permanent + induced (`b`, 9 terms), full (`c`, 18 terms), full + rate derivatives (`d`, 21 terms)
 - IGRF earth field baseline (via `ppigrf`) or steady-maneuver mean
 - Automatic FOM flight segmentation with optional pre-labelled column
 - Ridge (L2) regularisation option
@@ -73,7 +73,7 @@ lubricate-magnetic-compensation calibrate [OPTIONS] INPUT_CSV
 |---|---|---|
 | `--output` | `coefficients.json` | Output path for coefficients JSON |
 | `--igrf-date` | today | Date for IGRF evaluation (YYYY-MM-DD) |
-| `--model-terms` | `c` | Term set: `a` (3), `b` (9), `c` (18) |
+| `--model-terms` | `c` | Term set: `a` (3), `b` (9), `c` (18), `d` (21) |
 | `--earth-field-method` | `igrf` | `igrf` or `steady_mean` |
 | `--use-ridge / --no-use-ridge` | off | Enable ridge regression |
 | `--ridge-alpha` | `0.001` | Ridge regularisation strength |

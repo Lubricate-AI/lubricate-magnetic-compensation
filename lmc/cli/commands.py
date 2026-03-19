@@ -29,7 +29,7 @@ app = typer.Typer(
     add_completion=False,
 )
 
-_EXPECTED_N_TERMS: dict[str, int] = {"a": 3, "b": 9, "c": 18}
+_EXPECTED_N_TERMS: dict[str, int] = {"a": 3, "b": 9, "c": 18, "d": 21}
 
 
 @app.command("calibrate")
@@ -47,10 +47,13 @@ def calibrate_cmd(
         ),
     ] = None,
     model_terms: Annotated[
-        Literal["a", "b", "c"],
+        Literal["a", "b", "c", "d"],
         typer.Option(
             "--model-terms",
-            help="Tolles-Lawson term set: a (permanent), b (+induced), c (full).",
+            help=(
+                "Tolles-Lawson term set: a (permanent), b (+induced),"
+                " c (full), d (full + rate derivatives)."
+            ),
         ),
     ] = "c",
     earth_field_method: Annotated[
@@ -251,7 +254,7 @@ def compensate_cmd(
         raw_coef = json.loads(coefficients.read_text())
         _validate_coef_dict(raw_coef)
         coef_data = cast(dict[str, object], raw_coef)
-        model_terms = cast(Literal["a", "b", "c"], coef_data["model_terms"])
+        model_terms = cast(Literal["a", "b", "c", "d"], coef_data["model_terms"])
         coefs = np.array(coef_data["coefficients"], dtype=np.float64)
         n_terms = int(coef_data["n_terms"])  # type: ignore[arg-type]
         condition_number = float(coef_data["condition_number"])  # type: ignore[arg-type]

@@ -50,14 +50,19 @@ def test_pipeline_config_rejects_high_above_nyquist() -> None:
 
 
 def test_pipeline_config_accepts_valid_model_terms() -> None:
-    for term in ("a", "b", "c"):
+    for term in ("a", "b", "c", "d"):
         cfg = PipelineConfig(model_terms=term)  # type: ignore[arg-type]
         assert cfg.model_terms == term
 
 
 def test_pipeline_config_rejects_invalid_model_terms() -> None:
     with pytest.raises(ValidationError):
-        PipelineConfig(model_terms="d")  # type: ignore[arg-type]
+        PipelineConfig(model_terms="e")  # type: ignore[arg-type]
+
+
+def test_model_terms_d_is_valid() -> None:
+    config = PipelineConfig(model_terms="d")
+    assert config.model_terms == "d"
 
 
 def test_pipeline_config_rejects_negative_ridge_alpha() -> None:

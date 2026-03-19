@@ -28,6 +28,9 @@ from lmc.columns import (
     COL_COS_Z_DCOS_X,
     COL_COS_Z_DCOS_Y,
     COL_COS_Z_DCOS_Z,
+    COL_DCOS_X,
+    COL_DCOS_Y,
+    COL_DCOS_Z,
     COL_PITCH_RATE,
     COL_ROLL_RATE,
     COL_TIME,
@@ -118,7 +121,7 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
     Returns
     -------
     pl.DataFrame
-        Feature matrix with 3, 9, or 18 columns depending on ``config.model_terms``.
+        Feature matrix with 3, 9, 18, or 21 columns depending on ``config.model_terms``.
 
     Raises
     ------
@@ -126,17 +129,17 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
         If ``df`` is not a ``polars.DataFrame``.
     ValueError
         If DataFrame validation fails (missing columns, wrong dtypes, nulls,
-        non-monotonic time), or if ``config.model_terms == "c"`` and ``df``
-        has fewer than 2 rows, or if any ``B_total`` value is non-positive,
-        or if ``config.use_imu_rates`` is ``True`` and any of the three IMU
-        columns are absent.
+        non-monotonic time), or if ``config.model_terms`` is ``"c"`` or ``"d"``
+        and ``df`` has fewer than 2 rows, or if any ``B_total`` value is
+        non-positive, or if ``config.use_imu_rates`` is ``True`` and any of
+        the three IMU columns are absent.
     """
     validate_dataframe(df)
 
-    if config.model_terms == "c" and len(df) < 2:
+    if config.model_terms in ("c", "d") and len(df) < 2:
         raise ValueError(
             "At least 2 rows are required to compute eddy current terms"
-            " (model_terms='c')."
+            " (model_terms='c' or 'd')."
         )
 
     cos_x, cos_y, cos_z = _direction_cosines(df)
@@ -148,7 +151,7 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
     data[COL_COS_Y] = cos_y
     data[COL_COS_Z] = cos_z
 
-    if config.model_terms in ("b", "c"):
+    if config.model_terms in ("b", "c", "d"):
         # Induced terms (6)
         data[COL_COS_X2] = cos_x * cos_x
         data[COL_COS_XY] = cos_x * cos_y
@@ -157,7 +160,7 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
         data[COL_COS_YZ] = cos_y * cos_z
         data[COL_COS_Z2] = cos_z * cos_z
 
-    if config.model_terms == "c":
+    if config.model_terms in ("c", "d"):
         if config.use_imu_rates:
             dcos_x, dcos_y, dcos_z = _imu_rates(df)
         else:
@@ -174,5 +177,11 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
         data[COL_COS_Z_DCOS_X] = cos_z * dcos_x
         data[COL_COS_Z_DCOS_Y] = cos_z * dcos_y
         data[COL_COS_Z_DCOS_Z] = cos_z * dcos_z
+
+        if config.model_terms == "d":
+            # Rate derivative terms (3)
+            data[COL_DCOS_X] = dcos_x
+            data[COL_DCOS_Y] = dcos_y
+            data[COL_DCOS_Z] = dcos_z
 
     return pl.DataFrame({k: pl.Series(k, v, dtype=pl.Float64) for k, v in data.items()})

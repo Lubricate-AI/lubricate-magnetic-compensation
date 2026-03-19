@@ -60,3 +60,8 @@ COL_COS_Y_DCOS_Z: str = "cos_y_dcos_z"
 COL_COS_Z_DCOS_X: str = "cos_z_dcos_x"
 COL_COS_Z_DCOS_Y: str = "cos_z_dcos_y"
 COL_COS_Z_DCOS_Z: str = "cos_z_dcos_z"
+
+# Rate derivative terms (3)
+COL_DCOS_X: str = "dcos_x"
+COL_DCOS_Y: str = "dcos_y"
+COL_DCOS_Z: str = "dcos_z"
