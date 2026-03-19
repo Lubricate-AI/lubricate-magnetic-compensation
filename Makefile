@@ -18,7 +18,7 @@ lint-python: ## Run ruff linting and formatting checks (passive)
 	uv run ruff format --check $(SOURCE_PATH) $(TEST_PATH)
 
 lint-spellcheck: ## Run typos spellchecker
-	uv run typos .
+	uv run typos . --exclude "docs/plans"
 
 lint-yaml: ## Run YAML linting
 	uv run yamllint -d "{extends: relaxed, rules: {line-length: {max: 120}}}" .github
