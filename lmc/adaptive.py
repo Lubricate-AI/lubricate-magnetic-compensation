@@ -4,9 +4,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np  # noqa: F401
+import numpy.typing as npt  # noqa: F401
 import polars as pl
 
 from lmc.calibration import CalibrationResult, calibrate
+from lmc.columns import (  # noqa: F401
+    COL_BTOTAL,
+    COL_BX,
+    COL_BY,
+    COL_BZ,
+    COL_TMI_COMPENSATED,
+)
 from lmc.config import PipelineConfig
 from lmc.segmentation import Segment
 
@@ -78,7 +87,7 @@ def calibrate_adaptive_maneuvers(
             raise ValueError(
                 f"No '{name}' segments found. "
                 f"calibrate_adaptive_maneuvers requires at least one segment "
-                f"for each of: pitch, roll, yaw, steady."
+                "for each of: pitch, roll, yaw, steady."
             )
 
     pitch_result = calibrate(df, pitch_segs, config)

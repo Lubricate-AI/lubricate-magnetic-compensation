@@ -10,8 +10,15 @@ import pytest
 from lmc.adaptive import AdaptiveCalibrationResult, calibrate_adaptive_maneuvers
 from lmc.calibration import CalibrationResult
 from lmc.columns import (
-    COL_ALT, COL_BTOTAL, COL_BX, COL_BY, COL_BZ,
-    COL_DELTA_B, COL_LAT, COL_LON, COL_TIME,
+    COL_ALT,
+    COL_BTOTAL,
+    COL_BX,
+    COL_BY,
+    COL_BZ,
+    COL_DELTA_B,
+    COL_LAT,
+    COL_LON,
+    COL_TIME,
 )
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
@@ -73,16 +80,18 @@ def _make_base_df(n_rows: int, rng: np.random.Generator) -> pl.DataFrame:
     bx = cosines[:, 0] * b_total
     by = cosines[:, 1] * b_total
     bz = cosines[:, 2] * b_total
-    return pl.DataFrame({
-        COL_TIME: np.arange(n_rows, dtype=np.float64),
-        COL_LAT: np.full(n_rows, 45.0),
-        COL_LON: np.full(n_rows, -75.0),
-        COL_ALT: np.full(n_rows, 0.3),
-        COL_BTOTAL: np.full(n_rows, b_total),
-        COL_BX: bx,
-        COL_BY: by,
-        COL_BZ: bz,
-    })
+    return pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 0.3),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: bx,
+            COL_BY: by,
+            COL_BZ: bz,
+        }
+    )
 
 
 def _make_adaptive_calibration_data(
@@ -94,28 +103,33 @@ def _make_adaptive_calibration_data(
     rng = np.random.default_rng(seed)
     c_true = np.array([1.0, -2.0, 0.5])
 
-    blocks = []
-    segs = []
+    blocks: list[pl.DataFrame] = []
+    segs: list[Segment] = []
     offset = 0
     for maneuver in ["steady", "pitch", "roll", "yaw"]:
         block = _make_base_df(n_rows_each, rng)
         A = build_feature_matrix(block, config).to_numpy()
         delta_b = A @ c_true + rng.normal(0, 0.01, n_rows_each)
-        block = block.with_columns(
-            pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64)
-        )
+        block = block.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
         blocks.append(block)
-        segs.append(Segment(maneuver=maneuver, heading="N",  # type: ignore[arg-type]
-                            start_idx=offset, end_idx=offset + n_rows_each))
+        segs.append(
+            Segment(
+                maneuver=maneuver,  # type: ignore[arg-type]
+                heading="N",  # type: ignore[arg-type]
+                start_idx=offset,
+                end_idx=offset + n_rows_each,
+            )
+        )
         offset += n_rows_each
 
-    df = pl.concat(blocks)
+    df: pl.DataFrame = pl.concat(blocks)
     return df, segs
 
 
 # ---------------------------------------------------------------------------
 # calibrate_adaptive_maneuvers tests
 # ---------------------------------------------------------------------------
+
 
 def test_adaptive_calibration_returns_correct_type() -> None:
     df, segments = _make_adaptive_calibration_data()
