@@ -45,7 +45,9 @@ class AdaptiveCalibrationResult:
     n_terms: int
 
 
-def _rolling_variance(arr: npt.NDArray[np.float64], window: int) -> npt.NDArray[np.float64]:
+def _rolling_variance(
+    arr: npt.NDArray[np.float64], window: int
+) -> npt.NDArray[np.float64]:
     """Compute causal rolling population variance.
 
     For index ``i``, variance is computed over ``arr[max(0, i-window+1) : i+1]``.

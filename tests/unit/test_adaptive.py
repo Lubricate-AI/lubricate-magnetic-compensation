@@ -7,7 +7,11 @@ import numpy.typing as npt  # noqa: F401
 import polars as pl
 import pytest
 
-from lmc.adaptive import AdaptiveCalibrationResult, _rolling_variance, calibrate_adaptive_maneuvers
+from lmc.adaptive import (
+    AdaptiveCalibrationResult,
+    _rolling_variance,
+    calibrate_adaptive_maneuvers,
+)
 from lmc.calibration import CalibrationResult
 from lmc.columns import (
     COL_ALT,
