@@ -2,6 +2,39 @@
 
 <!-- version list -->
 
+## v1.16.0 (2026-03-19)
+
+### Bug Fixes
+
+- Update CLI and config to support model_terms='d'
+  ([#49](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/49),
+  [`825517f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/825517f2d2351f80b2c58f3bec311a3a2b3cd66e))
+
+### Documentation
+
+- Update term set descriptions to include model_terms='d' (rate derivatives)
+  ([#49](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/49),
+  [`825517f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/825517f2d2351f80b2c58f3bec311a3a2b3cd66e))
+
+### Features
+
+- Add attitude rate derivatives as standalone features (model_terms='d')
+  ([#49](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/49),
+  [`825517f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/825517f2d2351f80b2c58f3bec311a3a2b3cd66e))
+
+- Add dcos_x/y/z column constants for rate derivative features
+  ([#49](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/49),
+  [`825517f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/825517f2d2351f80b2c58f3bec311a3a2b3cd66e))
+
+- Add model_terms='d' exposing raw dcos derivatives as features
+  ([#49](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/49),
+  [`825517f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/825517f2d2351f80b2c58f3bec311a3a2b3cd66e))
+
+- Extend model_terms to accept 'd' for rate-derivative term set
+  ([#49](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/49),
+  [`825517f`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/825517f2d2351f80b2c58f3bec311a3a2b3cd66e))
+
+
 ## v1.15.1 (2026-03-18)
 
 ### Bug Fixes
