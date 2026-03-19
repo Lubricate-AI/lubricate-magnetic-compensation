@@ -97,7 +97,7 @@ class PipelineConfig(BaseModel):
         description=(
             "When True, use IMU angular rate channels (roll_rate, pitch_rate, yaw_rate)"
             " in place of numerically-differentiated direction cosines for eddy-current"
-            " term estimation. Only applied when model_terms='c'. "
+            " term estimation. Only applied when model_terms='c' or 'd'. "
             "Requires all three IMU columns to be present in the input DataFrame."
         ),
     )
