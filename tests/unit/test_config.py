@@ -120,3 +120,33 @@ def test_pipeline_config_use_imu_rates_defaults_false() -> None:
 
 def test_pipeline_config_use_imu_rates_can_be_set_true() -> None:
     assert PipelineConfig(use_imu_rates=True).use_imu_rates is True
+
+
+def test_compensation_strategy_default_is_standard() -> None:
+    config = PipelineConfig()
+    assert config.compensation_strategy == "standard"
+
+
+def test_compensation_strategy_accepts_adaptive_maneuver() -> None:
+    config = PipelineConfig(compensation_strategy="adaptive_maneuver")
+    assert config.compensation_strategy == "adaptive_maneuver"
+
+
+def test_maneuver_detection_window_default() -> None:
+    config = PipelineConfig()
+    assert config.maneuver_detection_window == 50
+
+
+def test_maneuver_baseline_weight_default() -> None:
+    config = PipelineConfig()
+    assert config.maneuver_baseline_weight == 0.1
+
+
+def test_maneuver_detection_window_must_be_positive() -> None:
+    with pytest.raises(ValidationError):
+        PipelineConfig(maneuver_detection_window=0)
+
+
+def test_maneuver_baseline_weight_must_be_positive() -> None:
+    with pytest.raises(ValidationError):
+        PipelineConfig(maneuver_baseline_weight=0.0)
