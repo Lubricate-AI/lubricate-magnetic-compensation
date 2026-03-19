@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np  # noqa: F401
-import numpy.typing as npt  # noqa: F401
+import numpy as np
+import numpy.typing as npt
 import polars as pl
 
 from lmc.calibration import CalibrationResult, calibrate
-from lmc.columns import (  # noqa: F401
+from lmc.columns import (
     COL_BTOTAL,
     COL_BX,
     COL_BY,
@@ -17,6 +17,7 @@ from lmc.columns import (  # noqa: F401
     COL_TMI_COMPENSATED,
 )
 from lmc.config import PipelineConfig
+from lmc.features import build_feature_matrix
 from lmc.segmentation import Segment
 
 
@@ -45,7 +46,7 @@ class AdaptiveCalibrationResult:
     n_terms: int
 
 
-def _rolling_variance(  # pyright: ignore[reportUnusedFunction]
+def _rolling_variance(
     arr: npt.NDArray[np.float64], window: int
 ) -> npt.NDArray[np.float64]:
     """Compute causal rolling population variance.
@@ -130,3 +131,93 @@ def calibrate_adaptive_maneuvers(
         baseline=baseline_result,
         n_terms=pitch_result.n_terms,
     )
+
+
+def compensate_adaptive(
+    df: pl.DataFrame,
+    result: AdaptiveCalibrationResult,
+    config: PipelineConfig,
+) -> pl.DataFrame:
+    """Apply compensation with maneuver-adaptive coefficient blending.
+
+    Algorithm
+    ---------
+    1. Build feature matrix ``A`` from fluxgate columns (shape ``n × n_terms``).
+    2. Compute direction cosines from raw fluxgate components.
+    3. Compute rolling variance of each direction cosine to detect maneuver
+       intensity (pitch ~ cos_x, roll ~ cos_y, yaw ~ cos_z).
+    4. Normalise intensities + ``maneuver_baseline_weight`` to unit-sum weights.
+    5. Blend four interference vectors: ``w_pitch*(A@c_pitch) + ...``
+    6. Return ``df`` with column ``COL_TMI_COMPENSATED = B_total - interference``.
+
+    Parameters
+    ----------
+    df:
+        Survey DataFrame containing all required magnetometer columns.
+    result:
+        Adaptive calibration result from ``calibrate_adaptive_maneuvers()``.
+    config:
+        Pipeline configuration.  ``model_terms`` must match those used during
+        calibration.  ``maneuver_detection_window`` and
+        ``maneuver_baseline_weight`` control blending behaviour.
+
+    Returns
+    -------
+    pl.DataFrame
+        Input DataFrame with added column ``COL_TMI_COMPENSATED``.
+
+    Raises
+    ------
+    ValueError
+        If feature matrix column count does not match ``result.n_terms``.
+    """
+    feature_matrix = build_feature_matrix(df, config)
+    A = feature_matrix.to_numpy()
+
+    if A.shape[1] != result.n_terms:
+        raise ValueError(
+            f"Feature matrix has {A.shape[1]} columns but AdaptiveCalibrationResult "
+            f"has {result.n_terms} terms. Ensure the same model_terms are used "
+            "for both calibration and compensation."
+        )
+
+    # --- Direction cosines for maneuver detection ---
+    bx = np.asarray(df[COL_BX].to_numpy(), dtype=np.float64)
+    by = np.asarray(df[COL_BY].to_numpy(), dtype=np.float64)
+    bz = np.asarray(df[COL_BZ].to_numpy(), dtype=np.float64)
+    b_flux_mag = np.sqrt(bx**2 + by**2 + bz**2)
+    cos_x = bx / b_flux_mag
+    cos_y = by / b_flux_mag
+    cos_z = bz / b_flux_mag
+
+    # --- Rolling variance → maneuver intensities ---
+    window = config.maneuver_detection_window
+    pitch_intensity = _rolling_variance(cos_x, window)
+    roll_intensity = _rolling_variance(cos_y, window)
+    yaw_intensity = _rolling_variance(cos_z, window)
+
+    # --- Normalise to blend weights (sum == 1 at every sample) ---
+    baseline_w = config.maneuver_baseline_weight
+    total = pitch_intensity + roll_intensity + yaw_intensity + baseline_w
+    w_pitch = pitch_intensity / total
+    w_roll = roll_intensity / total
+    w_yaw = yaw_intensity / total
+    w_baseline = baseline_w / total
+
+    # --- Per-maneuver interference vectors (broadcast-efficient) ---
+    interf_pitch = A @ result.pitch.coefficients
+    interf_roll = A @ result.roll.coefficients
+    interf_yaw = A @ result.yaw.coefficients
+    interf_baseline = A @ result.baseline.coefficients
+
+    interference = (
+        w_pitch * interf_pitch
+        + w_roll * interf_roll
+        + w_yaw * interf_yaw
+        + w_baseline * interf_baseline
+    )
+
+    b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
+    tmi_comp = b_total - interference
+
+    return df.with_columns(pl.Series(COL_TMI_COMPENSATED, tmi_comp, dtype=pl.Float64))

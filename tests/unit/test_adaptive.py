@@ -11,8 +11,9 @@ from lmc.adaptive import (
     AdaptiveCalibrationResult,
     _rolling_variance,  # pyright: ignore[reportPrivateUsage]
     calibrate_adaptive_maneuvers,
+    compensate_adaptive,
 )
-from lmc.calibration import CalibrationResult
+from lmc.calibration import CalibrationResult, calibrate
 from lmc.columns import (
     COL_ALT,
     COL_BTOTAL,
@@ -23,7 +24,9 @@ from lmc.columns import (
     COL_LAT,
     COL_LON,
     COL_TIME,
+    COL_TMI_COMPENSATED,
 )
+from lmc.compensation import compensate
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
 from lmc.segmentation import Segment
@@ -225,3 +228,95 @@ def test_rolling_variance_known_values() -> None:
     # Index 2: window is [1, 2, 3] → variance = np.var([1,2,3])
     expected_idx2 = float(np.var(np.array([1.0, 2.0, 3.0])))
     np.testing.assert_allclose(result[2], expected_idx2, atol=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# compensate_adaptive tests
+# ---------------------------------------------------------------------------
+
+
+def _make_full_adaptive_result(
+    config: PipelineConfig,
+    seed: int = 42,
+) -> tuple[pl.DataFrame, AdaptiveCalibrationResult]:
+    """Build a survey DataFrame + AdaptiveCalibrationResult from synthetic data."""
+    df_cal, segments = _make_adaptive_calibration_data(n_rows_each=60, seed=seed)
+    result = calibrate_adaptive_maneuvers(df_cal, segments, config)
+    # Build a survey df (no delta_B required — compensation only needs B columns)
+    rng = np.random.default_rng(seed + 1)
+    survey = _make_base_df(50, rng)
+    return survey, result
+
+
+def test_compensate_adaptive_returns_tmi_compensated_column() -> None:
+    config = PipelineConfig(model_terms="a")
+    df, result = _make_full_adaptive_result(config)
+    out = compensate_adaptive(df, result, config)
+    assert COL_TMI_COMPENSATED in out.columns
+
+
+def test_compensate_adaptive_row_count_preserved() -> None:
+    config = PipelineConfig(model_terms="a")
+    df, result = _make_full_adaptive_result(config)
+    out = compensate_adaptive(df, result, config)
+    assert len(out) == len(df)
+
+
+def test_compensate_adaptive_tmi_values_finite() -> None:
+    config = PipelineConfig(model_terms="a")
+    df, result = _make_full_adaptive_result(config)
+    out = compensate_adaptive(df, result, config)
+    assert out[COL_TMI_COMPENSATED].is_finite().all()
+
+
+def test_compensate_adaptive_terms_mismatch_raises() -> None:
+    """Using model_terms='b' (9 terms) with an 'a' result (3 terms) must fail."""
+    config_a = PipelineConfig(model_terms="a")
+    config_b = PipelineConfig(model_terms="b")
+    df, result_a = _make_full_adaptive_result(config_a)
+    with pytest.raises(ValueError, match="9"):
+        compensate_adaptive(df, result_a, config_b)
+
+
+def test_compensate_adaptive_identical_coefs_matches_standard() -> None:
+    """When all four coefficient sets are identical, adaptive == standard."""
+    config = PipelineConfig(model_terms="a")
+    rng = np.random.default_rng(99)
+    c_true = np.array([1.0, -2.0, 0.5])
+
+    # Build a df with delta_B so we can call calibrate()
+    block = _make_base_df(80, rng)
+    A = build_feature_matrix(block, config).to_numpy()
+    delta_b = A @ c_true
+    df_cal = block.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+
+    from lmc.segmentation import Segment
+
+    single_seg = [
+        Segment(
+            maneuver="steady",
+            heading="N",  # type: ignore[arg-type]
+            start_idx=0,
+            end_idx=80,
+        )
+    ]
+    single_result = calibrate(df_cal, single_seg, config)
+
+    # Wrap the same result in all four slots
+    adaptive_result = AdaptiveCalibrationResult(
+        pitch=single_result,
+        roll=single_result,
+        yaw=single_result,
+        baseline=single_result,
+        n_terms=single_result.n_terms,
+    )
+
+    survey = _make_base_df(50, np.random.default_rng(7))
+    out_standard = compensate(survey, single_result, config)
+    out_adaptive = compensate_adaptive(survey, adaptive_result, config)
+
+    np.testing.assert_allclose(
+        out_adaptive[COL_TMI_COMPENSATED].to_numpy(),
+        out_standard[COL_TMI_COMPENSATED].to_numpy(),
+        atol=1e-10,
+    )
