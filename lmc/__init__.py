@@ -1,5 +1,10 @@
 """Lubricate Magnetic Compensation — public API."""
 
+from lmc.adaptive import (
+    AdaptiveCalibrationResult,
+    calibrate_adaptive_maneuvers,
+    compensate_adaptive,
+)
 from lmc.calibration import CalibrationResult, calibrate
 from lmc.columns import (
     COL_ALT,
@@ -45,6 +50,9 @@ from lmc.segmentation import Segment, segment_fom
 from lmc.validation import validate_dataframe
 
 __all__ = [
+    "AdaptiveCalibrationResult",
+    "calibrate_adaptive_maneuvers",
+    "compensate_adaptive",
     "CalibrationResult",
     "calibrate",
     "compensate",

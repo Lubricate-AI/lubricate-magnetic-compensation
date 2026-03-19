@@ -319,3 +319,17 @@ def test_compensate_adaptive_identical_coefs_matches_standard() -> None:
         out_standard[COL_TMI_COMPENSATED].to_numpy(),
         atol=1e-10,
     )
+
+
+# ---------------------------------------------------------------------------
+# Public API export test
+# ---------------------------------------------------------------------------
+
+
+def test_public_api_exports_adaptive_symbols() -> None:
+    """All three new symbols must be importable directly from lmc."""
+    import lmc
+
+    assert hasattr(lmc, "AdaptiveCalibrationResult")
+    assert hasattr(lmc, "calibrate_adaptive_maneuvers")
+    assert hasattr(lmc, "compensate_adaptive")
