@@ -45,6 +45,32 @@ class AdaptiveCalibrationResult:
     n_terms: int
 
 
+def _rolling_variance(arr: npt.NDArray[np.float64], window: int) -> npt.NDArray[np.float64]:
+    """Compute causal rolling population variance.
+
+    For index ``i``, variance is computed over ``arr[max(0, i-window+1) : i+1]``.
+    This means the first ``window-1`` samples use a shorter effective window
+    (causal edge handling — no look-ahead, no padding).
+
+    Parameters
+    ----------
+    arr:
+        1-D input array.
+    window:
+        Maximum number of samples in the rolling window.
+
+    Returns
+    -------
+    np.ndarray
+        Array of the same shape as ``arr`` with rolling variances.
+    """
+    n = len(arr)
+    out = np.empty(n, dtype=np.float64)
+    for i in range(n):
+        out[i] = float(np.var(arr[max(0, i - window + 1) : i + 1]))
+    return out
+
+
 def calibrate_adaptive_maneuvers(
     df: pl.DataFrame,
     segments: list[Segment],

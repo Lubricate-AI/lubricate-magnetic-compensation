@@ -7,7 +7,7 @@ import numpy.typing as npt  # noqa: F401
 import polars as pl
 import pytest
 
-from lmc.adaptive import AdaptiveCalibrationResult, calibrate_adaptive_maneuvers
+from lmc.adaptive import AdaptiveCalibrationResult, _rolling_variance, calibrate_adaptive_maneuvers
 from lmc.calibration import CalibrationResult
 from lmc.columns import (
     COL_ALT,
@@ -179,3 +179,45 @@ def test_adaptive_calibration_raises_if_steady_segments_missing() -> None:
     config = PipelineConfig(model_terms="a")
     with pytest.raises(ValueError, match="steady"):
         calibrate_adaptive_maneuvers(df, non_steady, config)
+
+
+# ---------------------------------------------------------------------------
+# _rolling_variance tests
+# ---------------------------------------------------------------------------
+
+
+def test_rolling_variance_all_zeros_returns_zeros() -> None:
+    arr = np.zeros(20, dtype=np.float64)
+    result = _rolling_variance(arr, window=5)
+    np.testing.assert_array_equal(result, np.zeros(20))
+
+
+def test_rolling_variance_constant_returns_zeros() -> None:
+    arr = np.full(20, 3.14, dtype=np.float64)
+    result = _rolling_variance(arr, window=5)
+    np.testing.assert_allclose(result, 0.0, atol=1e-12)
+
+
+def test_rolling_variance_output_shape_matches_input() -> None:
+    arr = np.arange(30, dtype=np.float64)
+    result = _rolling_variance(arr, window=10)
+    assert result.shape == (30,)
+
+
+def test_rolling_variance_single_element_window_is_zero() -> None:
+    """Variance of a single value is 0."""
+    arr = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    result = _rolling_variance(arr, window=1)
+    np.testing.assert_allclose(result, 0.0, atol=1e-12)
+
+
+def test_rolling_variance_known_values() -> None:
+    """After window is full, variance matches numpy for a known window."""
+    arr = np.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64)
+    result = _rolling_variance(arr, window=3)
+    # Index 4: window is [3, 4, 5] → variance = np.var([3,4,5])
+    expected_last = float(np.var(np.array([3.0, 4.0, 5.0])))
+    np.testing.assert_allclose(result[4], expected_last, atol=1e-12)
+    # Index 2: window is [1, 2, 3] → variance = np.var([1,2,3])
+    expected_idx2 = float(np.var(np.array([1.0, 2.0, 3.0])))
+    np.testing.assert_allclose(result[2], expected_idx2, atol=1e-12)
