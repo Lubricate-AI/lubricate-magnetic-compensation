@@ -120,10 +120,12 @@ def calibrate_adaptive_maneuvers(
                 "for each of: pitch, roll, yaw, steady."
             )
 
-    pitch_result = calibrate(df, pitch_segs, config)
-    roll_result = calibrate(df, roll_segs, config)
-    yaw_result = calibrate(df, yaw_segs, config)
-    baseline_result = calibrate(df, baseline_segs, config)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pitch_result = calibrate(df, pitch_segs, config)
+        roll_result = calibrate(df, roll_segs, config)
+        yaw_result = calibrate(df, yaw_segs, config)
+        baseline_result = calibrate(df, baseline_segs, config)
 
     for name, result in [
         ("pitch", pitch_result),

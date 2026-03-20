@@ -47,6 +47,18 @@ def _dummy_cal_result(n_terms: int) -> CalibrationResult:
     )
 
 
+def _named_ill_conditioned_warnings(
+    caught: list[warnings.WarningMessage],
+) -> list[warnings.WarningMessage]:
+    maneuver_names = {"pitch", "roll", "yaw", "steady"}
+    return [
+        w
+        for w in caught
+        if any(name in str(w.message) for name in maneuver_names)
+        and "ill-conditioned" in str(w.message).lower()
+    ]
+
+
 # ---------------------------------------------------------------------------
 # AdaptiveCalibrationResult tests
 # ---------------------------------------------------------------------------
@@ -201,15 +213,8 @@ def test_calibrate_adaptive_warns_for_ill_conditioned_maneuver() -> None:
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         calibrate_adaptive_maneuvers(df, segments, config)
-    # Expect at least one warning that names a maneuver type AND says "ill-conditioned"
-    maneuver_names = {"pitch", "roll", "yaw", "steady"}
-    named_warnings = [
-        w
-        for w in caught
-        if any(name in str(w.message) for name in maneuver_names)
-        and "ill-conditioned" in str(w.message).lower()
-    ]
-    assert len(named_warnings) > 0
+    named_warnings = _named_ill_conditioned_warnings(caught)
+    assert len(named_warnings) == 4
 
 
 def test_calibrate_adaptive_no_named_warning_when_well_conditioned() -> None:
@@ -222,12 +227,7 @@ def test_calibrate_adaptive_no_named_warning_when_well_conditioned() -> None:
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         calibrate_adaptive_maneuvers(df, segments, config)
-    named_warnings = [
-        w
-        for w in caught
-        if "ill-conditioned" in str(w.message).lower()
-        and any(n in str(w.message) for n in ("pitch", "roll", "yaw", "steady"))
-    ]
+    named_warnings = _named_ill_conditioned_warnings(caught)
     assert len(named_warnings) == 0
 
 
