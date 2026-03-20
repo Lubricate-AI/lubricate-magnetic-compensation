@@ -164,9 +164,11 @@ def compensate_adaptive(
     2. Compute direction cosines from raw fluxgate components.
     3. Compute rolling variance of each direction cosine to detect maneuver
        intensity (pitch ~ cos_x, roll ~ cos_y, yaw ~ cos_z).
-    4. Normalise intensities + ``maneuver_baseline_weight`` to unit-sum weights.
-    5. Blend four interference vectors: ``w_pitch*(A@c_pitch) + ...``
-    6. Return ``df`` with column ``COL_TMI_COMPENSATED = B_total - interference``.
+    4. Zero intensity for any maneuver whose condition number exceeds
+       ``config.condition_number_threshold`` (ill-conditioned fallback).
+    5. Normalise intensities + ``maneuver_baseline_weight`` to unit-sum weights.
+    6. Blend four interference vectors: ``w_pitch*(A@c_pitch) + ...``
+    7. Return ``df`` with column ``COL_TMI_COMPENSATED = B_total - interference``.
 
     Parameters
     ----------

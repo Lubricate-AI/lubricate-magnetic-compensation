@@ -391,23 +391,21 @@ def test_compensate_adaptive_suppresses_all_when_threshold_is_one() -> None:
 
 
 def test_compensate_adaptive_no_suppression_when_threshold_is_high() -> None:
-    """When threshold=1e12, no maneuver is suppressed.
+    """When threshold is very high, no suppression fires; output differs from
+    suppressed run."""
+    config_high = PipelineConfig(model_terms="a", condition_number_threshold=1e12)
+    config_low = PipelineConfig(model_terms="a", condition_number_threshold=1.0)
+    df, result = _make_full_adaptive_result(config_high)
 
-    Result equals normal adaptive output.
-    """
-    config_normal = PipelineConfig(model_terms="a", condition_number_threshold=1e12)
-    config_also_normal = PipelineConfig(
-        model_terms="a", condition_number_threshold=1e12
-    )
-    df, result = _make_full_adaptive_result(config_normal)
+    out_high = compensate_adaptive(df, result, config_high)  # no suppression
+    out_low = compensate_adaptive(df, result, config_low)  # full suppression
 
-    out1 = compensate_adaptive(df, result, config_normal)
-    out2 = compensate_adaptive(df, result, config_also_normal)
-
-    np.testing.assert_allclose(
-        out1[COL_TMI_COMPENSATED].to_numpy(),
-        out2[COL_TMI_COMPENSATED].to_numpy(),
-        atol=1e-10,
+    # The two outputs must differ: suppression meaningfully changes the result
+    assert not np.allclose(
+        out_high[COL_TMI_COMPENSATED].to_numpy(),
+        out_low[COL_TMI_COMPENSATED].to_numpy(),
+        atol=1e-6,
+        rtol=0,
     )
 
 

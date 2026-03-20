@@ -89,7 +89,8 @@ class PipelineConfig(BaseModel):
         gt=0.0,
         description=(
             "Condition number threshold above which a warning is emitted "
-            "during calibration, indicating a potentially ill-conditioned system."
+            "and, in adaptive compensation, the maneuver's blending weight "
+            "is suppressed to zero, falling back to baseline coefficients."
         ),
     )
     use_imu_rates: bool = Field(
