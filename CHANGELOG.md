@@ -2,6 +2,65 @@
 
 <!-- version list -->
 
+## v1.17.0 (2026-03-20)
+
+### Chores
+
+- Add implementation plan and update lockfile
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Exclude docs/plans from typos spellcheck (contains code examples)
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+### Features
+
+- Adaptive maneuver-based compensation with coefficient blending
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Add _rolling_variance helper for maneuver intensity detection
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Add adaptive maneuver config fields to PipelineConfig
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Add AdaptiveCalibrationResult dataclass
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Export adaptive compensation API from lmc
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Implement calibrate_adaptive_maneuvers
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Implement compensate_adaptive with rolling variance blending
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+### Refactoring
+
+- Add forward-use imports and fix f-string in adaptive module
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+- Clean up adaptive module imports
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+### Testing
+
+- Add integration test for adaptive maneuver compensation
+  ([#51](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/51),
+  [`8bd5cfc`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8bd5cfc45bb31b71aec90f51f75aac0e50cd9cf5))
+
+
 ## v1.16.0 (2026-03-19)
 
 ### Bug Fixes
