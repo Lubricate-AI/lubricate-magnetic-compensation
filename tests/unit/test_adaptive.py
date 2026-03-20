@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import polars as pl
 import pytest
@@ -43,6 +45,18 @@ def _dummy_cal_result(n_terms: int) -> CalibrationResult:
         condition_number=1.0,
         n_terms=n_terms,
     )
+
+
+def _named_ill_conditioned_warnings(
+    caught: list[warnings.WarningMessage],
+) -> list[warnings.WarningMessage]:
+    maneuver_names = {"pitch", "roll", "yaw", "steady"}
+    return [
+        w
+        for w in caught
+        if any(name in str(w.message) for name in maneuver_names)
+        and "ill-conditioned" in str(w.message).lower()
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +201,36 @@ def test_adaptive_calibration_raises_if_steady_segments_missing() -> None:
         calibrate_adaptive_maneuvers(df, non_steady, config)
 
 
+def test_calibrate_adaptive_warns_for_ill_conditioned_maneuver() -> None:
+    """Ill-conditioned segment triggers a named warning from
+    calibrate_adaptive_maneuvers.
+
+    Warning must name the maneuver type and say "ill-conditioned".
+    """
+    df, segments = _make_adaptive_calibration_data()
+    # Force an extremely low threshold so the warning fires for all maneuvers
+    config = PipelineConfig(model_terms="a", condition_number_threshold=1.0)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate_adaptive_maneuvers(df, segments, config)
+    named_warnings = _named_ill_conditioned_warnings(caught)
+    assert len(named_warnings) == 4
+
+
+def test_calibrate_adaptive_no_named_warning_when_well_conditioned() -> None:
+    """No named adaptive warning when all condition numbers are below threshold.
+
+    With a high threshold (1e12), no maneuver should trigger a warning.
+    """
+    df, segments = _make_adaptive_calibration_data()
+    config = PipelineConfig(model_terms="a", condition_number_threshold=1e12)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate_adaptive_maneuvers(df, segments, config)
+    named_warnings = _named_ill_conditioned_warnings(caught)
+    assert len(named_warnings) == 0
+
+
 # ---------------------------------------------------------------------------
 # _rolling_variance tests
 # ---------------------------------------------------------------------------
@@ -318,6 +362,50 @@ def test_compensate_adaptive_identical_coefs_matches_standard() -> None:
         out_adaptive[COL_TMI_COMPENSATED].to_numpy(),
         out_standard[COL_TMI_COMPENSATED].to_numpy(),
         atol=1e-10,
+    )
+
+
+def test_compensate_adaptive_suppresses_all_when_threshold_is_one() -> None:
+    """When threshold=1.0, all maneuver intensities are suppressed.
+
+    With all intensities zeroed, only baseline_w remains, so the output
+    equals pure baseline output.
+    """
+    config = PipelineConfig(model_terms="a", condition_number_threshold=1.0)
+    df, result = _make_full_adaptive_result(config)
+
+    out = compensate_adaptive(df, result, config)
+
+    # With all intensities zeroed, only baseline_w remains.
+    # interference == interf_baseline
+    A = build_feature_matrix(df, config).to_numpy()
+    interf_baseline = A @ result.baseline.coefficients
+    b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
+    expected = b_total - interf_baseline
+
+    np.testing.assert_allclose(
+        out[COL_TMI_COMPENSATED].to_numpy(),
+        expected,
+        atol=1e-10,
+    )
+
+
+def test_compensate_adaptive_no_suppression_when_threshold_is_high() -> None:
+    """When threshold is very high, no suppression fires; output differs from
+    suppressed run."""
+    config_high = PipelineConfig(model_terms="a", condition_number_threshold=1e12)
+    config_low = PipelineConfig(model_terms="a", condition_number_threshold=1.0)
+    df, result = _make_full_adaptive_result(config_high)
+
+    out_high = compensate_adaptive(df, result, config_high)  # no suppression
+    out_low = compensate_adaptive(df, result, config_low)  # full suppression
+
+    # The two outputs must differ: suppression meaningfully changes the result
+    assert not np.allclose(
+        out_high[COL_TMI_COMPENSATED].to_numpy(),
+        out_low[COL_TMI_COMPENSATED].to_numpy(),
+        atol=1e-6,
+        rtol=0,
     )
 
 

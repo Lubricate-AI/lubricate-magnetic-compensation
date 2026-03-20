@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -119,10 +120,43 @@ def calibrate_adaptive_maneuvers(
                 "for each of: pitch, roll, yaw, steady."
             )
 
-    pitch_result = calibrate(df, pitch_segs, config)
-    roll_result = calibrate(df, roll_segs, config)
-    yaw_result = calibrate(df, yaw_segs, config)
-    baseline_result = calibrate(df, baseline_segs, config)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        pitch_result = calibrate(df, pitch_segs, config)
+        roll_result = calibrate(df, roll_segs, config)
+        yaw_result = calibrate(df, yaw_segs, config)
+        baseline_result = calibrate(df, baseline_segs, config)
+
+    for name, result in [
+        ("pitch", pitch_result),
+        ("roll", roll_result),
+        ("yaw", yaw_result),
+        ("steady", baseline_result),
+    ]:
+        if result.condition_number > config.condition_number_threshold:
+            if name == "steady":
+                warnings.warn(
+                    "Adaptive calibration: baseline ('steady') fit is "
+                    "ill-conditioned (condition number "
+                    f"{result.condition_number:.3e} exceeds threshold "
+                    f"{config.condition_number_threshold:.3e}). Coefficients "
+                    "may be "
+                    "unstable; baseline is always used during compensation, so "
+                    "consider revisiting calibration data or falling back to "
+                    "standard calibrate() / compensate().",
+                    stacklevel=2,
+                )
+            else:
+                warnings.warn(
+                    f"Adaptive calibration: '{name}' maneuver is "
+                    "ill-conditioned (condition number "
+                    f"{result.condition_number:.3e} exceeds threshold "
+                    f"{config.condition_number_threshold:.3e}). Coefficients "
+                    "may be "
+                    "unstable; compensate_adaptive() will suppress this maneuver's "
+                    "weight.",
+                    stacklevel=2,
+                )
 
     return AdaptiveCalibrationResult(
         pitch=pitch_result,
@@ -146,9 +180,11 @@ def compensate_adaptive(
     2. Compute direction cosines from raw fluxgate components.
     3. Compute rolling variance of each direction cosine to detect maneuver
        intensity (pitch ~ cos_x, roll ~ cos_y, yaw ~ cos_z).
-    4. Normalise intensities + ``maneuver_baseline_weight`` to unit-sum weights.
-    5. Blend four interference vectors: ``w_pitch*(A@c_pitch) + ...``
-    6. Return ``df`` with column ``COL_TMI_COMPENSATED = B_total - interference``.
+    4. Zero intensity for any maneuver whose condition number exceeds
+       ``config.condition_number_threshold`` (ill-conditioned fallback).
+    5. Normalise intensities + ``maneuver_baseline_weight`` to unit-sum weights.
+    6. Blend four interference vectors: ``w_pitch*(A@c_pitch) + ...``
+    7. Return ``df`` with column ``COL_TMI_COMPENSATED = B_total - interference``.
 
     Parameters
     ----------
@@ -195,6 +231,15 @@ def compensate_adaptive(
     pitch_intensity = _rolling_variance(cos_x, window)
     roll_intensity = _rolling_variance(cos_y, window)
     yaw_intensity = _rolling_variance(cos_z, window)
+
+    # --- Suppress weights for ill-conditioned maneuver types ---
+    threshold = config.condition_number_threshold
+    if result.pitch.condition_number > threshold:
+        pitch_intensity = np.zeros_like(pitch_intensity)
+    if result.roll.condition_number > threshold:
+        roll_intensity = np.zeros_like(roll_intensity)
+    if result.yaw.condition_number > threshold:
+        yaw_intensity = np.zeros_like(yaw_intensity)
 
     # --- Normalise to blend weights (sum == 1 at every sample) ---
     baseline_w = config.maneuver_baseline_weight

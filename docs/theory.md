@@ -301,6 +301,83 @@ $$
 
 ---
 
+## Adaptive Compensation: Data Quality Requirements
+
+For stable per-maneuver coefficient fitting in `calibrate_adaptive_maneuvers()`,
+each maneuver type (pitch, roll, yaw, steady) must independently satisfy the
+conditioning requirements of the Tolles-Lawson linear system.
+
+### Minimum Sample Count
+
+The feature matrix for a maneuver segment has `n_terms` columns (3, 9, 18, or 21
+depending on `model_terms`). A well-determined system requires significantly more
+rows than columns. As a practical guideline:
+
+| `model_terms` | Terms | Recommended minimum samples per maneuver |
+|---|---|---|
+| `"a"` | 3 | ≥ 50 |
+| `"b"` | 9 | ≥ 200 |
+| `"c"` | 18 | ≥ 500 |
+| `"d"` | 21 | ≥ 600 |
+
+These are rough minimums. More samples always improve conditioning.
+
+### Direction Cosine Diversity
+
+Each maneuver type must produce sufficient geometric variation in the fluxgate
+direction cosines (`cos_x`, `cos_y`, `cos_z`). Specifically:
+
+- **Pitch maneuvers** drive variation in `cos_x`. Include multiple pitch excursions
+  across different headings (N, E, S, W) to avoid rank-deficiency in the eddy-current
+  cross-terms.
+- **Roll maneuvers** drive variation in `cos_y`. Same multi-heading recommendation.
+- **Yaw maneuvers** drive variation in `cos_z`. Yaw is most susceptible to
+  ill-conditioning because many survey patterns produce only shallow yaw excursions.
+  If yaw data is limited (e.g. fewer than 500 samples or condition number above 10⁶),
+  consider using standard `calibrate()` / `compensate()` instead.
+- **Steady (baseline) segments** should cover all cardinal headings to ensure a
+  well-distributed baseline coefficient set.
+
+### Diagnosing Ill-Conditioned Segments
+
+After calling `calibrate_adaptive_maneuvers()`, inspect the condition number of each
+sub-result:
+
+```python
+result = calibrate_adaptive_maneuvers(df, segments, config)
+print(f"Pitch  condition number: {result.pitch.condition_number:.2e}")
+print(f"Roll   condition number: {result.roll.condition_number:.2e}")
+print(f"Yaw    condition number: {result.yaw.condition_number:.2e}")
+print(f"Steady condition number: {result.baseline.condition_number:.2e}")
+# Note: steady-maneuver results are stored under result.baseline
+```
+
+A condition number above `config.condition_number_threshold` (default `1e6`) triggers
+a warning. For pitch, roll, and yaw maneuvers, `compensate_adaptive()` will suppress
+that maneuver's blending weight, falling back to baseline coefficients for those
+samples. The baseline (steady) contribution is always applied and is never suppressed.
+If the baseline solution itself is ill-conditioned, consider redesigning the calibration
+segments or falling back to standard `calibrate()` / `compensate()` as described below.
+
+### Workaround for Limited Maneuver Data
+
+If any individual maneuver type is undersampled, standard calibration using all
+segments combined often produces excellent results:
+
+```python
+from lmc import calibrate, compensate
+
+# Combine all segments regardless of maneuver type
+all_segments = pitch_segs + roll_segs + yaw_segs + steady_segs
+result = calibrate(df, all_segments, config)
+df_out = compensate(df, result, config)
+```
+
+This is recommended when individual maneuver types have fewer than the minimum
+sample counts listed above, or when a condition number warning fires.
+
+---
+
 ## References
 
 - Tolles, W. E., & Lawson, J. D. (1950). *Magnetic compensation of MAD equipped aircraft*.
