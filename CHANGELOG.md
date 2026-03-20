@@ -2,6 +2,63 @@
 
 <!-- version list -->
 
+## v1.18.0 (2026-03-20)
+
+### Bug Fixes
+
+- Clarify config description to specify only pitch/roll/yaw suppressed
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Clarify warning message and docs for ill-conditioned baseline
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Strengthen no-suppression test, update config description and docstring for
+  condition_number_threshold
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Suppress duplicate calibrate() warnings in calibrate_adaptive_maneuvers, tighten test assertions
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Wrap long warning lines to satisfy ruff E501 (88 char limit)
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+### Continuous Integration
+
+- Upgrade slack-github-action to v3 for Node.js 24
+  ([#53](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/53),
+  [`2826713`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/282671345ddbd131acc4904c795205dd5e5fffd7))
+
+### Documentation
+
+- Add data quality guidance for adaptive compensation in theory.md
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Move data quality section before References, clarify result.baseline label
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+### Features
+
+- Emit named per-maneuver warning when condition number exceeds threshold in
+  calibrate_adaptive_maneuvers
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Suppress blending weight for ill-conditioned maneuver types in compensate_adaptive
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+- Validate coefficient stability in adaptive compensation
+  ([#55](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/55),
+  [`582e448`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/582e4485ec5a29f160bd6f52bf7c926f80027436))
+
+
 ## v1.17.0 (2026-03-20)
 
 ### Chores
