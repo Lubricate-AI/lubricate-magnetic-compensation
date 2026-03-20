@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -123,6 +124,21 @@ def calibrate_adaptive_maneuvers(
     roll_result = calibrate(df, roll_segs, config)
     yaw_result = calibrate(df, yaw_segs, config)
     baseline_result = calibrate(df, baseline_segs, config)
+
+    for name, result in [
+        ("pitch", pitch_result),
+        ("roll", roll_result),
+        ("yaw", yaw_result),
+        ("steady", baseline_result),
+    ]:
+        if result.condition_number > config.condition_number_threshold:
+            warnings.warn(
+                f"Adaptive calibration: '{name}' maneuver is ill-conditioned "
+                f"(condition number {result.condition_number:.3e} exceeds threshold "
+                f"{config.condition_number_threshold:.3e}). Coefficients may be "
+                "unstable; compensate_adaptive() will suppress this maneuver's weight.",
+                stacklevel=2,
+            )
 
     return AdaptiveCalibrationResult(
         pitch=pitch_result,

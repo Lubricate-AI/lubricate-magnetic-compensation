@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import polars as pl
 import pytest
@@ -185,6 +187,48 @@ def test_adaptive_calibration_raises_if_steady_segments_missing() -> None:
     config = PipelineConfig(model_terms="a")
     with pytest.raises(ValueError, match="steady"):
         calibrate_adaptive_maneuvers(df, non_steady, config)
+
+
+def test_calibrate_adaptive_warns_for_ill_conditioned_maneuver() -> None:
+    """Ill-conditioned segment triggers a named warning from
+    calibrate_adaptive_maneuvers.
+
+    Warning must name the maneuver type and say "ill-conditioned".
+    """
+    df, segments = _make_adaptive_calibration_data()
+    # Force an extremely low threshold so the warning fires for all maneuvers
+    config = PipelineConfig(model_terms="a", condition_number_threshold=1.0)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate_adaptive_maneuvers(df, segments, config)
+    # Expect at least one warning that names a maneuver type AND says "ill-conditioned"
+    maneuver_names = {"pitch", "roll", "yaw", "steady"}
+    named_warnings = [
+        w
+        for w in caught
+        if any(name in str(w.message) for name in maneuver_names)
+        and "ill-conditioned" in str(w.message).lower()
+    ]
+    assert len(named_warnings) > 0
+
+
+def test_calibrate_adaptive_no_named_warning_when_well_conditioned() -> None:
+    """No named adaptive warning when all condition numbers are below threshold.
+
+    With a high threshold (1e12), no maneuver should trigger a warning.
+    """
+    df, segments = _make_adaptive_calibration_data()
+    config = PipelineConfig(model_terms="a", condition_number_threshold=1e12)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate_adaptive_maneuvers(df, segments, config)
+    named_warnings = [
+        w
+        for w in caught
+        if "ill-conditioned" in str(w.message).lower()
+        and any(n in str(w.message) for n in ("pitch", "roll", "yaw", "steady"))
+    ]
+    assert len(named_warnings) == 0
 
 
 # ---------------------------------------------------------------------------
