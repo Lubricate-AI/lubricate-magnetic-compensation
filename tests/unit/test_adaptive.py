@@ -365,6 +365,52 @@ def test_compensate_adaptive_identical_coefs_matches_standard() -> None:
     )
 
 
+def test_compensate_adaptive_suppresses_all_when_threshold_is_one() -> None:
+    """When threshold=1.0, all maneuver intensities are suppressed.
+
+    With all intensities zeroed, only baseline_w remains, so the output
+    equals pure baseline output.
+    """
+    config = PipelineConfig(model_terms="a", condition_number_threshold=1.0)
+    df, result = _make_full_adaptive_result(config)
+
+    out = compensate_adaptive(df, result, config)
+
+    # With all intensities zeroed, only baseline_w remains.
+    # interference == interf_baseline
+    A = build_feature_matrix(df, config).to_numpy()
+    interf_baseline = A @ result.baseline.coefficients
+    b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
+    expected = b_total - interf_baseline
+
+    np.testing.assert_allclose(
+        out[COL_TMI_COMPENSATED].to_numpy(),
+        expected,
+        atol=1e-10,
+    )
+
+
+def test_compensate_adaptive_no_suppression_when_threshold_is_high() -> None:
+    """When threshold=1e12, no maneuver is suppressed.
+
+    Result equals normal adaptive output.
+    """
+    config_normal = PipelineConfig(model_terms="a", condition_number_threshold=1e12)
+    config_also_normal = PipelineConfig(
+        model_terms="a", condition_number_threshold=1e12
+    )
+    df, result = _make_full_adaptive_result(config_normal)
+
+    out1 = compensate_adaptive(df, result, config_normal)
+    out2 = compensate_adaptive(df, result, config_also_normal)
+
+    np.testing.assert_allclose(
+        out1[COL_TMI_COMPENSATED].to_numpy(),
+        out2[COL_TMI_COMPENSATED].to_numpy(),
+        atol=1e-10,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public API export test
 # ---------------------------------------------------------------------------

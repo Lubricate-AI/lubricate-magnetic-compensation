@@ -214,6 +214,15 @@ def compensate_adaptive(
     roll_intensity = _rolling_variance(cos_y, window)
     yaw_intensity = _rolling_variance(cos_z, window)
 
+    # --- Suppress weights for ill-conditioned maneuver types ---
+    threshold = config.condition_number_threshold
+    if result.pitch.condition_number > threshold:
+        pitch_intensity = np.zeros_like(pitch_intensity)
+    if result.roll.condition_number > threshold:
+        roll_intensity = np.zeros_like(roll_intensity)
+    if result.yaw.condition_number > threshold:
+        yaw_intensity = np.zeros_like(yaw_intensity)
+
     # --- Normalise to blend weights (sum == 1 at every sample) ---
     baseline_w = config.maneuver_baseline_weight
     total = pitch_intensity + roll_intensity + yaw_intensity + baseline_w
