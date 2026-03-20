@@ -101,6 +101,32 @@ class PipelineConfig(BaseModel):
             "Requires all three IMU columns to be present in the input DataFrame."
         ),
     )
+    compensation_strategy: Literal["standard", "adaptive_maneuver"] = Field(
+        default="standard",
+        description=(
+            "Compensation strategy: 'standard' uses a single coefficient set; "
+            "'adaptive_maneuver' blends per-maneuver coefficients based on "
+            "detected maneuver intensity."
+        ),
+    )
+    maneuver_detection_window: int = Field(
+        default=50,
+        gt=0,
+        description=(
+            "Rolling window size [samples] for computing direction-cosine variance "
+            "used to detect maneuver intensity. "
+            "At 10 Hz, 50 samples ≈ 5 seconds."
+        ),
+    )
+    maneuver_baseline_weight: float = Field(
+        default=0.1,
+        gt=0.0,
+        description=(
+            "Constant additive weight for baseline coefficients during blending. "
+            "Keeps a small baseline contribution even when a strong maneuver is "
+            "detected, preventing zero-weight extrapolation."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_bandpass(self) -> PipelineConfig:
