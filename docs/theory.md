@@ -301,22 +301,6 @@ $$
 
 ---
 
-## References
-
-- Tolles, W. E., & Lawson, J. D. (1950). *Magnetic compensation of MAD equipped aircraft*.
-  Airborne Instruments Lab. Inc., Mineola, NY. Report 201-1.
-- Leliak, P. (1961). Identification and evaluation of magnetic-field sources of magnetic
-  airborne detector equipped aircraft. *IRE Transactions on Aerospace and Navigational
-  Electronics*, ANE-8(3), 95–105.
-- Noriega, G. (2011). Performance measures in aeromagnetic compensation.
-  *The Leading Edge*, 30(10), 1122–1127.
-- Alken, P., et al. (2021). International Geomagnetic Reference Field: the
-  thirteenth generation. *Earth, Planets and Space*, 73(49).
-  [DOI: 10.1186/s40623-020-01288-x](https://doi.org/10.1186/s40623-020-01288-x)
-- Gnadt, A. R., Wollaber, A. B., & Nielsen, A. P. (2022). Derivation and extensions
-  of the Tolles-Lawson model for aeromagnetic compensation. *arXiv preprint*.
-  [DOI: 10.48550/arXiv.2212.09899](https://doi.org/10.48550/arXiv.2212.09899)
-
 ## Adaptive Compensation: Data Quality Requirements
 
 For stable per-maneuver coefficient fitting in `calibrate_adaptive_maneuvers()`,
@@ -365,6 +349,7 @@ print(f"Pitch  condition number: {result.pitch.condition_number:.2e}")
 print(f"Roll   condition number: {result.roll.condition_number:.2e}")
 print(f"Yaw    condition number: {result.yaw.condition_number:.2e}")
 print(f"Steady condition number: {result.baseline.condition_number:.2e}")
+# Note: steady-maneuver results are stored under result.baseline
 ```
 
 A condition number above `config.condition_number_threshold` (default `1e6`) triggers
@@ -387,3 +372,21 @@ df_out = compensate(survey_df, result, config)
 
 This is recommended when individual maneuver types have fewer than the minimum
 sample counts listed above, or when a condition number warning fires.
+
+---
+
+## References
+
+- Tolles, W. E., & Lawson, J. D. (1950). *Magnetic compensation of MAD equipped aircraft*.
+  Airborne Instruments Lab. Inc., Mineola, NY. Report 201-1.
+- Leliak, P. (1961). Identification and evaluation of magnetic-field sources of magnetic
+  airborne detector equipped aircraft. *IRE Transactions on Aerospace and Navigational
+  Electronics*, ANE-8(3), 95–105.
+- Noriega, G. (2011). Performance measures in aeromagnetic compensation.
+  *The Leading Edge*, 30(10), 1122–1127.
+- Alken, P., et al. (2021). International Geomagnetic Reference Field: the
+  thirteenth generation. *Earth, Planets and Space*, 73(49).
+  [DOI: 10.1186/s40623-020-01288-x](https://doi.org/10.1186/s40623-020-01288-x)
+- Gnadt, A. R., Wollaber, A. B., & Nielsen, A. P. (2022). Derivation and extensions
+  of the Tolles-Lawson model for aeromagnetic compensation. *arXiv preprint*.
+  [DOI: 10.48550/arXiv.2212.09899](https://doi.org/10.48550/arXiv.2212.09899)
