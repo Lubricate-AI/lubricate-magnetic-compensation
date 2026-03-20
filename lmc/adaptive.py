@@ -134,13 +134,25 @@ def calibrate_adaptive_maneuvers(
         ("steady", baseline_result),
     ]:
         if result.condition_number > config.condition_number_threshold:
-            warnings.warn(
-                f"Adaptive calibration: '{name}' maneuver is ill-conditioned "
-                f"(condition number {result.condition_number:.3e} exceeds threshold "
-                f"{config.condition_number_threshold:.3e}). Coefficients may be "
-                "unstable; compensate_adaptive() will suppress this maneuver's weight.",
-                stacklevel=2,
-            )
+            if name == "steady":
+                warnings.warn(
+                    "Adaptive calibration: baseline ('steady') fit is ill-conditioned "
+                    f"(condition number {result.condition_number:.3e} exceeds threshold "
+                    f"{config.condition_number_threshold:.3e}). Coefficients may be "
+                    "unstable; baseline is always used during compensation, so "
+                    "consider revisiting calibration data or falling back to "
+                    "standard calibrate() / compensate().",
+                    stacklevel=2,
+                )
+            else:
+                warnings.warn(
+                    f"Adaptive calibration: '{name}' maneuver is ill-conditioned "
+                    f"(condition number {result.condition_number:.3e} exceeds threshold "
+                    f"{config.condition_number_threshold:.3e}). Coefficients may be "
+                    "unstable; compensate_adaptive() will suppress this maneuver's "
+                    "weight.",
+                    stacklevel=2,
+                )
 
     return AdaptiveCalibrationResult(
         pitch=pitch_result,

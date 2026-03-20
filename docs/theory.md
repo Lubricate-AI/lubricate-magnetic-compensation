@@ -353,8 +353,11 @@ print(f"Steady condition number: {result.baseline.condition_number:.2e}")
 ```
 
 A condition number above `config.condition_number_threshold` (default `1e6`) triggers
-a warning and causes `compensate_adaptive()` to suppress that maneuver's blending
-weight, falling back to baseline coefficients for those samples.
+a warning. For pitch, roll, and yaw maneuvers, `compensate_adaptive()` will suppress
+that maneuver's blending weight, falling back to baseline coefficients for those
+samples. The baseline (steady) contribution is always applied and is never suppressed.
+If the baseline solution itself is ill-conditioned, consider redesigning the calibration
+segments or falling back to standard `calibrate()` / `compensate()` as described below.
 
 ### Workaround for Limited Maneuver Data
 
@@ -367,7 +370,7 @@ from lmc import calibrate, compensate
 # Combine all segments regardless of maneuver type
 all_segments = pitch_segs + roll_segs + yaw_segs + steady_segs
 result = calibrate(df, all_segments, config)
-df_out = compensate(survey_df, result, config)
+df_out = compensate(df, result, config)
 ```
 
 This is recommended when individual maneuver types have fewer than the minimum
