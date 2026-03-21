@@ -150,3 +150,55 @@ def test_maneuver_detection_window_must_be_positive() -> None:
 def test_maneuver_baseline_weight_must_be_positive() -> None:
     with pytest.raises(ValidationError):
         PipelineConfig(maneuver_baseline_weight=0.0)
+
+
+def test_lasso_fields_default_off() -> None:
+    config = PipelineConfig()
+    assert config.use_lasso is False
+    assert config.lasso_alpha == 1e-3
+
+
+def test_elastic_net_fields_default_off() -> None:
+    config = PipelineConfig()
+    assert config.use_elastic_net is False
+    assert config.elastic_net_alpha == 1e-3
+    assert config.elastic_net_l1_ratio == 0.5
+
+
+def test_lasso_alpha_must_be_non_negative() -> None:
+    with pytest.raises(ValidationError):
+        PipelineConfig(use_lasso=True, lasso_alpha=-0.1)
+
+
+def test_elastic_net_alpha_must_be_non_negative() -> None:
+    with pytest.raises(ValidationError):
+        PipelineConfig(use_elastic_net=True, elastic_net_alpha=-0.1)
+
+
+def test_elastic_net_l1_ratio_must_be_in_0_1() -> None:
+    with pytest.raises(ValidationError):
+        PipelineConfig(use_elastic_net=True, elastic_net_l1_ratio=1.5)
+    with pytest.raises(ValidationError):
+        PipelineConfig(use_elastic_net=True, elastic_net_l1_ratio=-0.1)
+
+
+def test_ridge_and_lasso_mutually_exclusive() -> None:
+    with pytest.raises(ValidationError, match="At most one regularization method"):
+        PipelineConfig(use_ridge=True, use_lasso=True)
+
+
+def test_ridge_and_elastic_net_mutually_exclusive() -> None:
+    with pytest.raises(ValidationError, match="At most one regularization method"):
+        PipelineConfig(use_ridge=True, use_elastic_net=True)
+
+
+def test_lasso_and_elastic_net_mutually_exclusive() -> None:
+    with pytest.raises(ValidationError, match="At most one regularization method"):
+        PipelineConfig(use_lasso=True, use_elastic_net=True)
+
+
+def test_single_method_enabled_is_valid() -> None:
+    # Each individually valid
+    PipelineConfig(use_ridge=True)
+    PipelineConfig(use_lasso=True)
+    PipelineConfig(use_elastic_net=True)
