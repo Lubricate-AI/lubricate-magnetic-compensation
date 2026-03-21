@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import numpy.typing as npt
@@ -31,12 +31,21 @@ class CalibrationResult:
         Condition number of the stacked (un-augmented) A-matrix.
     n_terms:
         Number of model coefficients (3, 9, or 18 depending on ``model_terms``).
+    selected_alpha:
+        Regularisation strength used. ``None`` for OLS.
+    effective_dof:
+        Effective degrees of freedom consumed by the model.
+        For ridge: ``sum(sigma_i^2 / (sigma_i^2 + alpha))``.
+        For LASSO/ElasticNet: number of non-zero coefficients.
+        ``None`` for OLS.
     """
 
     coefficients: npt.NDArray[np.float64]
     residuals: npt.NDArray[np.float64]
     condition_number: float
     n_terms: int
+    selected_alpha: float | None = field(default=None)
+    effective_dof: float | None = field(default=None)
 
 
 def calibrate(

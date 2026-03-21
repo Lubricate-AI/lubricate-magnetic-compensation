@@ -270,3 +270,26 @@ def test_out_of_range_segment_raises() -> None:
     bad_seg = Segment(maneuver="steady", heading="N", start_idx=0, end_idx=len(df) + 1)
     with pytest.raises(ValueError, match="invalid bounds"):
         calibrate(df, [bad_seg], _CONFIG_A)
+
+
+def test_calibration_result_diagnostic_fields_default_none() -> None:
+    """OLS calibration should have None diagnostics (no regularization)."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A)
+    result = calibrate(df, segments, _CONFIG_A)
+    assert result.selected_alpha is None
+    assert result.effective_dof is None
+
+
+def test_calibration_result_existing_sites_unbroken() -> None:
+    """Direct instantiation with keyword args still works without new fields."""
+    from lmc.calibration import CalibrationResult
+
+    r = CalibrationResult(
+        coefficients=np.zeros(3),
+        residuals=np.zeros(5),
+        condition_number=1.0,
+        n_terms=3,
+    )
+    assert r.selected_alpha is None
+    assert r.effective_dof is None
