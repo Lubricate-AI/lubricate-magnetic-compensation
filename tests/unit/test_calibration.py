@@ -192,6 +192,31 @@ def test_ridge_recovers_reasonable() -> None:
     np.testing.assert_allclose(result.coefficients, c_true, atol=0.1)
 
 
+def test_ridge_populates_diagnostics() -> None:
+    """Ridge result should have selected_alpha and effective_dof populated."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(model_terms="a", use_ridge=True, ridge_alpha=1e-3)
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha == pytest.approx(1e-3)  # pyright: ignore[reportUnknownMemberType]
+    assert result.effective_dof is not None
+    assert 0.0 <= result.effective_dof <= result.n_terms
+
+
+def test_ridge_effective_dof_decreases_with_stronger_regularization() -> None:
+    """Larger ridge alpha should shrink effective_dof toward zero."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config_weak = PipelineConfig(model_terms="a", use_ridge=True, ridge_alpha=1e-6)
+    config_strong = PipelineConfig(model_terms="a", use_ridge=True, ridge_alpha=1e3)
+    df_weak, segments = _make_synthetic_data(c_true, config_weak)
+    df_strong, _ = _make_synthetic_data(c_true, config_strong)
+    result_weak = calibrate(df_weak, segments, config_weak)
+    result_strong = calibrate(df_strong, segments, config_strong)
+    assert result_weak.effective_dof is not None
+    assert result_strong.effective_dof is not None
+    assert result_strong.effective_dof < result_weak.effective_dof
+
+
 # ---------------------------------------------------------------------------
 # Condition number tests
 # ---------------------------------------------------------------------------

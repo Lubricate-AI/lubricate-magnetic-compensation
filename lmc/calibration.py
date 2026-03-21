@@ -136,7 +136,7 @@ def calibrate(
         dB_aug: npt.NDArray[np.float64] = np.concatenate([dB, np.zeros(n_terms)])
         coefficients, _, _, _ = np.linalg.lstsq(A_aug, dB_aug, rcond=None)
         selected_alpha = config.ridge_alpha
-        _, sigma, _ = np.linalg.svd(A, full_matrices=False)
+        sigma = np.linalg.svd(A, compute_uv=False)
         effective_dof = float(np.sum(sigma**2 / (sigma**2 + config.ridge_alpha)))
     elif config.use_lasso:
         model = Lasso(alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000)
