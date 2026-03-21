@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v1.19.0 (2026-03-21)
+
+### Documentation
+
+- Fix n_terms docstring to include 21-term D-model
+  ([#63](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/63),
+  [`c815501`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/c815501469c70f51f9850c88f7c0d92d209b21d9))
+
+### Features
+
+- Add C-model calibration guardrails and singular value analysis
+  ([#63](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/63),
+  [`c815501`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/c815501469c70f51f9850c88f7c0d92d209b21d9))
+
+- Add singular value analysis to CalibrationResult
+  ([#63](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/63),
+  [`c815501`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/c815501469c70f51f9850c88f7c0d92d209b21d9))
+
+- Warn when C/D-model calibration has < 10,000 samples
+  ([#63](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/63),
+  [`c815501`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/c815501469c70f51f9850c88f7c0d92d209b21d9))
+
+
 ## v1.18.0 (2026-03-20)
 
 ### Bug Fixes
