@@ -80,8 +80,7 @@ class PipelineConfig(BaseModel):
         default=1e-3,
         ge=0.0,
         description=(
-            "ElasticNet regularisation strength. "
-            "Ignored when use_elastic_net is False."
+            "ElasticNet regularisation strength. Ignored when use_elastic_net is False."
         ),
     )
     elastic_net_l1_ratio: float = Field(
