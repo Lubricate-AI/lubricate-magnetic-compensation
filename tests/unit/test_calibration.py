@@ -314,6 +314,7 @@ def test_calibration_result_existing_sites_unbroken() -> None:
         coefficients=np.zeros(3),
         residuals=np.zeros(5),
         condition_number=1.0,
+        singular_values=np.zeros(3),
         n_terms=3,
     )
     assert r.selected_alpha is None
@@ -500,3 +501,90 @@ def test_elastic_net_more_stable_than_ols_on_multicollinear_data() -> None:
     assert en_norm < ols_norm, (
         f"Expected ElasticNet norm {en_norm:.3f} < OLS norm {ols_norm:.3f}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Low-sample warning tests
+# ---------------------------------------------------------------------------
+
+
+def test_low_sample_warning_c_model() -> None:
+    """C-model with < 10,000 samples should emit a UserWarning about sample count."""
+    c_true = np.arange(1, 19, dtype=np.float64) * 0.1
+    df, segments = _make_synthetic_data(c_true, _CONFIG_C, n_rows=80)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate(df, segments, _CONFIG_C)
+
+    sample_warnings = [
+        w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
+    ]
+    assert len(sample_warnings) == 1, (
+        f"Expected exactly one low-sample warning, got {len(sample_warnings)}"
+    )
+
+
+def test_no_low_sample_warning_when_sufficient() -> None:
+    """C-model with >= 10,000 samples should NOT emit a low-sample warning."""
+    c_true = np.arange(1, 19, dtype=np.float64) * 0.1
+    df, segments = _make_synthetic_data(c_true, _CONFIG_C, n_rows=10_000)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate(df, segments, _CONFIG_C)
+
+    sample_warnings = [
+        w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
+    ]
+    assert len(sample_warnings) == 0, (
+        f"Expected no low-sample warning with 10,000 rows, got {len(sample_warnings)}"
+    )
+
+
+def test_no_low_sample_warning_for_b_model() -> None:
+    """B-model should never emit a low-sample warning regardless of row count."""
+    c_true = np.array([1.0, -2.0, 0.5, 0.3, -0.1, 0.7, -0.4, 0.2, -0.8])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_B, n_rows=80)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate(df, segments, _CONFIG_B)
+
+    sample_warnings = [
+        w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
+    ]
+    assert len(sample_warnings) == 0
+
+
+# ---------------------------------------------------------------------------
+# Singular value tests
+# ---------------------------------------------------------------------------
+
+
+def test_singular_values_present_and_correct_shape() -> None:
+    """CalibrationResult should contain singular values matching n_terms."""
+    c_true = np.arange(1, 19, dtype=np.float64) * 0.1
+    df, segments = _make_synthetic_data(c_true, _CONFIG_C, n_rows=80)
+    result = calibrate(df, segments, _CONFIG_C)
+    assert hasattr(result, "singular_values")
+    assert result.singular_values.shape == (result.n_terms,)
+    assert result.singular_values.dtype == np.float64
+
+
+def test_singular_values_sorted_descending_and_positive() -> None:
+    """Singular values should be non-negative and sorted largest-first."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A, n_rows=80)
+    result = calibrate(df, segments, _CONFIG_A)
+
+    assert np.all(result.singular_values >= 0.0)
+    # Check descending order
+    assert np.all(result.singular_values[:-1] >= result.singular_values[1:])
+
+
+def test_condition_number_matches_singular_values() -> None:
+    """Condition number should equal max(sv) / min(sv)."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A, n_rows=80)
+    result = calibrate(df, segments, _CONFIG_A)
+
+    expected_cond = result.singular_values[0] / result.singular_values[-1]
+    np.testing.assert_allclose(result.condition_number, expected_cond, rtol=1e-10)

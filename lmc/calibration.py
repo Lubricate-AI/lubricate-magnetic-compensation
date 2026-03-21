@@ -18,6 +18,8 @@ from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
 from lmc.segmentation import Segment
 
+_MIN_SAMPLES_C_MODEL = 10_000
+
 
 @dataclass(frozen=True)
 class CalibrationResult:
@@ -33,8 +35,11 @@ class CalibrationResult:
         ``calibrate()``, **not** to all rows of the input DataFrame.
     condition_number:
         Condition number of the stacked (un-augmented) A-matrix.
+    singular_values:
+        Singular values of the A-matrix in descending order, shape ``(n_terms,)``.
+        Useful for diagnosing rank deficiency and numerical stability.
     n_terms:
-        Number of model coefficients (3, 9, or 18 depending on ``model_terms``).
+        Number of model coefficients (3, 9, 18, or 21 depending on ``model_terms``).
     selected_alpha:
         Regularisation strength used. ``None`` for OLS.
     effective_dof:
@@ -47,6 +52,7 @@ class CalibrationResult:
     coefficients: npt.NDArray[np.float64]
     residuals: npt.NDArray[np.float64]
     condition_number: float
+    singular_values: npt.NDArray[np.float64]
     n_terms: int
     selected_alpha: float | None = field(default=None)
     effective_dof: float | None = field(default=None)
@@ -114,9 +120,19 @@ def calibrate(
             "All segments produced empty slices; cannot calibrate with zero rows."
         )
 
+    if config.model_terms in ("c", "d") and A.shape[0] < _MIN_SAMPLES_C_MODEL:
+        warnings.warn(
+            f"C/D-model calibration has {A.shape[0]:,} samples, but at least "
+            f"{_MIN_SAMPLES_C_MODEL:,} are recommended for stable 18+ term "
+            "estimation. Consider collecting more calibration data or using "
+            "the B-model (model_terms='b') with fewer terms.",
+            stacklevel=2,
+        )
+
     n_terms = A.shape[1]
 
-    condition_number = float(np.linalg.cond(A))
+    singular_values = np.asarray(np.linalg.svd(A, compute_uv=False), dtype=np.float64)
+    condition_number = float(singular_values[0] / singular_values[-1])
 
     if condition_number > config.condition_number_threshold:
         warnings.warn(
@@ -136,8 +152,9 @@ def calibrate(
         dB_aug: npt.NDArray[np.float64] = np.concatenate([dB, np.zeros(n_terms)])
         coefficients, _, _, _ = np.linalg.lstsq(A_aug, dB_aug, rcond=None)
         selected_alpha = config.ridge_alpha
-        sigma = np.linalg.svd(A, compute_uv=False)
-        effective_dof = float(np.sum(sigma**2 / (sigma**2 + config.ridge_alpha)))
+        effective_dof = float(
+            np.sum(singular_values**2 / (singular_values**2 + config.ridge_alpha))
+        )
     elif config.use_lasso:
         model = Lasso(alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000)
         model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
@@ -165,6 +182,7 @@ def calibrate(
         coefficients=coefficients,
         residuals=residuals,
         condition_number=condition_number,
+        singular_values=singular_values,
         n_terms=n_terms,
         selected_alpha=selected_alpha,
         effective_dof=effective_dof,

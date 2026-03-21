@@ -75,6 +75,7 @@ def _make_result(
         coefficients=coefficients,
         residuals=np.zeros(len(df)),
         condition_number=1.0,
+        singular_values=np.ones(n_terms, dtype=np.float64),
         n_terms=n_terms,
     )
 
@@ -152,6 +153,7 @@ def test_round_trip_residual_near_zero() -> None:
         coefficients=coefficients,
         residuals=np.zeros(n_rows),
         condition_number=1.0,
+        singular_values=np.ones(9, dtype=np.float64),
         n_terms=9,
     )
     out = compensate(df_survey, result, config)
@@ -167,6 +169,7 @@ def test_terms_mismatch_raises() -> None:
         coefficients=np.ones(18),
         residuals=np.zeros(50),
         condition_number=1.0,
+        singular_values=np.ones(18, dtype=np.float64),
         n_terms=18,
     )
     with pytest.raises(ValueError, match="18"):
@@ -184,6 +187,7 @@ def test_works_for_all_model_terms(model_terms: str) -> None:
         coefficients=np.zeros(n_terms),
         residuals=np.zeros(n_rows),
         condition_number=1.0,
+        singular_values=np.ones(n_terms, dtype=np.float64),
         n_terms=n_terms,
     )
     out = compensate(df, result, config)
