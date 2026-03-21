@@ -35,7 +35,7 @@ class CalibrationResult:
         Singular values of the A-matrix in descending order, shape ``(n_terms,)``.
         Useful for diagnosing rank deficiency and numerical stability.
     n_terms:
-        Number of model coefficients (3, 9, or 18 depending on ``model_terms``).
+        Number of model coefficients (3, 9, 18, or 21 depending on ``model_terms``).
     """
 
     coefficients: npt.NDArray[np.float64]
