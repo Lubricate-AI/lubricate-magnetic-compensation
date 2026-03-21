@@ -8,6 +8,10 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 import polars as pl
+from sklearn.linear_model import (  # noqa: F401  # pyright: ignore[reportUnusedImport]
+    ElasticNet,
+    Lasso,
+)
 
 from lmc.columns import COL_DELTA_B
 from lmc.config import PipelineConfig
@@ -123,11 +127,23 @@ def calibrate(
             stacklevel=2,
         )
 
+    selected_alpha: float | None = None
+    effective_dof: float | None = None
+
     if config.use_ridge:
         sqrt_alpha = np.sqrt(config.ridge_alpha)
         A_aug: npt.NDArray[np.float64] = np.vstack([A, sqrt_alpha * np.eye(n_terms)])
         dB_aug: npt.NDArray[np.float64] = np.concatenate([dB, np.zeros(n_terms)])
         coefficients, _, _, _ = np.linalg.lstsq(A_aug, dB_aug, rcond=None)
+        selected_alpha = config.ridge_alpha
+        _, sigma, _ = np.linalg.svd(A, full_matrices=False)
+        effective_dof = float(np.sum(sigma**2 / (sigma**2 + config.ridge_alpha)))
+    elif config.use_lasso:
+        model = Lasso(alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000)
+        model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+        coefficients = np.asarray(model.coef_, dtype=np.float64)
+        selected_alpha = config.lasso_alpha
+        effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
     else:
         coefficients, _, _, _ = np.linalg.lstsq(A, dB, rcond=None)
 
@@ -139,4 +155,6 @@ def calibrate(
         residuals=residuals,
         condition_number=condition_number,
         n_terms=n_terms,
+        selected_alpha=selected_alpha,
+        effective_dof=effective_dof,
     )

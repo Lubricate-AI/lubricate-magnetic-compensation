@@ -293,3 +293,36 @@ def test_calibration_result_existing_sites_unbroken() -> None:
     )
     assert r.selected_alpha is None
     assert r.effective_dof is None
+
+
+def test_lasso_recovers_reasonable() -> None:
+    """LASSO introduces bias but should return plausible, finite coefficients."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-3)
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    assert result.coefficients.shape == (3,)
+    assert np.all(np.isfinite(result.coefficients))
+    np.testing.assert_allclose(result.coefficients, c_true, atol=0.1)
+
+
+def test_lasso_populates_diagnostics() -> None:
+    """LASSO result should have selected_alpha and effective_dof populated."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-3)
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha == pytest.approx(1e-3)  # pyright: ignore[reportUnknownMemberType]
+    assert result.effective_dof is not None
+    assert 0.0 <= result.effective_dof <= result.n_terms
+
+
+def test_lasso_zeroes_weak_terms_under_strong_regularization() -> None:
+    """With high alpha, LASSO should zero out at least some coefficients."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=10.0)
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    # At least one coefficient zeroed; effective_dof < n_terms
+    assert result.effective_dof is not None
+    assert result.effective_dof < result.n_terms
