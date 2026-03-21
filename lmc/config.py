@@ -63,6 +63,35 @@ class PipelineConfig(BaseModel):
         ge=0.0,
         description="Ridge regularisation strength. Ignored when use_ridge is False.",
     )
+    use_lasso: bool = Field(
+        default=False,
+        description="Use LASSO (L1-regularised) least squares instead of OLS.",
+    )
+    lasso_alpha: float = Field(
+        default=1e-3,
+        ge=0.0,
+        description="LASSO regularisation strength. Ignored when use_lasso is False.",
+    )
+    use_elastic_net: bool = Field(
+        default=False,
+        description="Use ElasticNet (L1 + L2) regularisation instead of OLS.",
+    )
+    elastic_net_alpha: float = Field(
+        default=1e-3,
+        ge=0.0,
+        description=(
+            "ElasticNet regularisation strength. Ignored when use_elastic_net is False."
+        ),
+    )
+    elastic_net_l1_ratio: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "ElasticNet mixing parameter: 0.0 = pure ridge, 1.0 = pure LASSO. "
+            "Ignored when use_elastic_net is False."
+        ),
+    )
     segment_label_col: str | None = Field(
         default=None,
         description=(
@@ -149,4 +178,14 @@ class PipelineConfig(BaseModel):
     def _check_igrf_date(self) -> PipelineConfig:
         if self.earth_field_method == "igrf" and self.igrf_date is None:
             raise ValueError("igrf_date is required when earth_field_method is 'igrf'.")
+        return self
+
+    @model_validator(mode="after")
+    def _check_regularization(self) -> PipelineConfig:
+        methods_enabled = [self.use_ridge, self.use_lasso, self.use_elastic_net]
+        if sum(methods_enabled) > 1:
+            raise ValueError(
+                "At most one regularization method may be enabled: "
+                "use_ridge, use_lasso, use_elastic_net."
+            )
         return self

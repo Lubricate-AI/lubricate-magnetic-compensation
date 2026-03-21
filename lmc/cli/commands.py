@@ -71,6 +71,32 @@ def calibrate_cmd(
         float,
         typer.Option("--ridge-alpha", help="Ridge regularisation strength."),
     ] = 1e-3,
+    use_lasso: Annotated[
+        bool,
+        typer.Option("--use-lasso/--no-use-lasso", help="Use LASSO (L1) regression."),
+    ] = False,
+    lasso_alpha: Annotated[
+        float,
+        typer.Option("--lasso-alpha", help="LASSO regularisation strength."),
+    ] = 1e-3,
+    use_elastic_net: Annotated[
+        bool,
+        typer.Option(
+            "--use-elastic-net/--no-use-elastic-net",
+            help="Use ElasticNet (L1+L2) regression.",
+        ),
+    ] = False,
+    elastic_net_alpha: Annotated[
+        float,
+        typer.Option("--elastic-net-alpha", help="ElasticNet regularisation strength."),
+    ] = 1e-3,
+    elastic_net_l1_ratio: Annotated[
+        float,
+        typer.Option(
+            "--elastic-net-l1-ratio",
+            help="ElasticNet L1 ratio: 0.0 = pure ridge, 1.0 = pure LASSO.",
+        ),
+    ] = 0.5,
     segment_label_col: Annotated[
         str | None,
         typer.Option("--segment-label-col", help="Pre-labeled segment column name."),
@@ -100,6 +126,11 @@ def calibrate_cmd(
             igrf_date=parsed_date,
             use_ridge=use_ridge,
             ridge_alpha=ridge_alpha,
+            use_lasso=use_lasso,
+            lasso_alpha=lasso_alpha,
+            use_elastic_net=use_elastic_net,
+            elastic_net_alpha=elastic_net_alpha,
+            elastic_net_l1_ratio=elastic_net_l1_ratio,
             segment_label_col=segment_label_col,
         )
 
@@ -128,6 +159,8 @@ def calibrate_cmd(
             "coefficients": result.coefficients.tolist(),
             "n_terms": result.n_terms,
             "condition_number": result.condition_number,
+            "selected_alpha": result.selected_alpha,
+            "effective_dof": result.effective_dof,
         }
         output.write_text(json.dumps(coef_data, indent=2))
 

@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import numpy.typing as npt
 import polars as pl
+from sklearn.linear_model import (
+    ElasticNet,
+    Lasso,
+)
 
 from lmc.columns import COL_DELTA_B
 from lmc.config import PipelineConfig
@@ -36,6 +40,13 @@ class CalibrationResult:
         Useful for diagnosing rank deficiency and numerical stability.
     n_terms:
         Number of model coefficients (3, 9, 18, or 21 depending on ``model_terms``).
+    selected_alpha:
+        Regularisation strength used. ``None`` for OLS.
+    effective_dof:
+        Effective degrees of freedom consumed by the model.
+        For ridge: ``sum(sigma_i^2 / (sigma_i^2 + alpha))``.
+        For LASSO/ElasticNet: number of non-zero coefficients.
+        ``None`` for OLS.
     """
 
     coefficients: npt.NDArray[np.float64]
@@ -43,6 +54,8 @@ class CalibrationResult:
     condition_number: float
     singular_values: npt.NDArray[np.float64]
     n_terms: int
+    selected_alpha: float | None = field(default=None)
+    effective_dof: float | None = field(default=None)
 
 
 def calibrate(
@@ -130,11 +143,35 @@ def calibrate(
             stacklevel=2,
         )
 
+    selected_alpha: float | None = None
+    effective_dof: float | None = None
+
     if config.use_ridge:
         sqrt_alpha = np.sqrt(config.ridge_alpha)
         A_aug: npt.NDArray[np.float64] = np.vstack([A, sqrt_alpha * np.eye(n_terms)])
         dB_aug: npt.NDArray[np.float64] = np.concatenate([dB, np.zeros(n_terms)])
         coefficients, _, _, _ = np.linalg.lstsq(A_aug, dB_aug, rcond=None)
+        selected_alpha = config.ridge_alpha
+        effective_dof = float(
+            np.sum(singular_values**2 / (singular_values**2 + config.ridge_alpha))
+        )
+    elif config.use_lasso:
+        model = Lasso(alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000)
+        model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+        coefficients = np.asarray(model.coef_, dtype=np.float64)
+        selected_alpha = config.lasso_alpha
+        effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
+    elif config.use_elastic_net:
+        model = ElasticNet(
+            alpha=config.elastic_net_alpha,
+            l1_ratio=config.elastic_net_l1_ratio,
+            fit_intercept=False,
+            max_iter=10_000,
+        )
+        model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+        coefficients = np.asarray(model.coef_, dtype=np.float64)
+        selected_alpha = config.elastic_net_alpha
+        effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
     else:
         coefficients, _, _, _ = np.linalg.lstsq(A, dB, rcond=None)
 
@@ -147,4 +184,6 @@ def calibrate(
         condition_number=condition_number,
         singular_values=singular_values,
         n_terms=n_terms,
+        selected_alpha=selected_alpha,
+        effective_dof=effective_dof,
     )
