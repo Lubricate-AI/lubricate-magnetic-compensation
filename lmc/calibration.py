@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 import polars as pl
-from sklearn.linear_model import (  # noqa: F401  # pyright: ignore[reportUnusedImport]
+from sklearn.linear_model import (
     ElasticNet,
     Lasso,
 )
@@ -143,6 +143,17 @@ def calibrate(
         model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
         coefficients = np.asarray(model.coef_, dtype=np.float64)
         selected_alpha = config.lasso_alpha
+        effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
+    elif config.use_elastic_net:
+        model = ElasticNet(
+            alpha=config.elastic_net_alpha,
+            l1_ratio=config.elastic_net_l1_ratio,
+            fit_intercept=False,
+            max_iter=10_000,
+        )
+        model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+        coefficients = np.asarray(model.coef_, dtype=np.float64)
+        selected_alpha = config.elastic_net_alpha
         effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
     else:
         coefficients, _, _, _ = np.linalg.lstsq(A, dB, rcond=None)

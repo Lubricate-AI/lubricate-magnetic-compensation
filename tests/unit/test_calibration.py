@@ -326,3 +326,49 @@ def test_lasso_zeroes_weak_terms_under_strong_regularization() -> None:
     # At least one coefficient zeroed; effective_dof < n_terms
     assert result.effective_dof is not None
     assert result.effective_dof < result.n_terms
+
+
+def test_elastic_net_recovers_reasonable() -> None:
+    """ElasticNet should return plausible, finite coefficients."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(
+        model_terms="a",
+        use_elastic_net=True,
+        elastic_net_alpha=1e-3,
+        elastic_net_l1_ratio=0.5,
+    )
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    assert result.coefficients.shape == (3,)
+    assert np.all(np.isfinite(result.coefficients))
+    np.testing.assert_allclose(result.coefficients, c_true, atol=0.1)
+
+
+def test_elastic_net_populates_diagnostics() -> None:
+    config = PipelineConfig(
+        model_terms="a",
+        use_elastic_net=True,
+        elastic_net_alpha=1e-3,
+        elastic_net_l1_ratio=0.5,
+    )
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha == pytest.approx(1e-3)  # pyright: ignore[reportUnknownMemberType]
+    assert result.effective_dof is not None
+    assert 0.0 <= result.effective_dof <= result.n_terms
+
+
+def test_elastic_net_l1_ratio_1_behaves_like_lasso() -> None:
+    """l1_ratio=1.0 is pure L1, so strong regularization should zero some coefs."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(
+        model_terms="a",
+        use_elastic_net=True,
+        elastic_net_alpha=10.0,
+        elastic_net_l1_ratio=1.0,
+    )
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    assert result.effective_dof is not None
+    assert result.effective_dof < result.n_terms
