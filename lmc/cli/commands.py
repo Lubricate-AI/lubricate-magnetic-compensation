@@ -263,6 +263,7 @@ def compensate_cmd(
             coefficients=coefs,
             residuals=np.empty(0, dtype=np.float64),
             condition_number=condition_number,
+            singular_values=np.ones(n_terms, dtype=np.float64),
             n_terms=n_terms,
         )
 

@@ -321,3 +321,39 @@ def test_no_low_sample_warning_for_b_model() -> None:
         w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
     ]
     assert len(sample_warnings) == 0
+
+
+# ---------------------------------------------------------------------------
+# Singular value tests
+# ---------------------------------------------------------------------------
+
+
+def test_singular_values_present_and_correct_shape() -> None:
+    """CalibrationResult should contain singular values matching n_terms."""
+    c_true = np.arange(1, 19, dtype=np.float64) * 0.1
+    df, segments = _make_synthetic_data(c_true, _CONFIG_C, n_rows=80)
+    result = calibrate(df, segments, _CONFIG_C)
+    assert hasattr(result, "singular_values")
+    assert result.singular_values.shape == (result.n_terms,)
+    assert result.singular_values.dtype == np.float64
+
+
+def test_singular_values_sorted_descending_and_positive() -> None:
+    """Singular values should be non-negative and sorted largest-first."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A, n_rows=80)
+    result = calibrate(df, segments, _CONFIG_A)
+
+    assert np.all(result.singular_values >= 0.0)
+    # Check descending order
+    assert np.all(result.singular_values[:-1] >= result.singular_values[1:])
+
+
+def test_condition_number_matches_singular_values() -> None:
+    """Condition number should equal max(sv) / min(sv)."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A, n_rows=80)
+    result = calibrate(df, segments, _CONFIG_A)
+
+    expected_cond = result.singular_values[0] / result.singular_values[-1]
+    np.testing.assert_allclose(result.condition_number, expected_cond, rtol=1e-10)

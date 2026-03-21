@@ -31,6 +31,9 @@ class CalibrationResult:
         ``calibrate()``, **not** to all rows of the input DataFrame.
     condition_number:
         Condition number of the stacked (un-augmented) A-matrix.
+    singular_values:
+        Singular values of the A-matrix in descending order, shape ``(n_terms,)``.
+        Useful for diagnosing rank deficiency and numerical stability.
     n_terms:
         Number of model coefficients (3, 9, or 18 depending on ``model_terms``).
     """
@@ -38,6 +41,7 @@ class CalibrationResult:
     coefficients: npt.NDArray[np.float64]
     residuals: npt.NDArray[np.float64]
     condition_number: float
+    singular_values: npt.NDArray[np.float64]
     n_terms: int
 
 
@@ -114,7 +118,8 @@ def calibrate(
 
     n_terms = A.shape[1]
 
-    condition_number = float(np.linalg.cond(A))
+    singular_values = np.asarray(np.linalg.svd(A, compute_uv=False), dtype=np.float64)
+    condition_number = float(singular_values[0] / singular_values[-1])
 
     if condition_number > config.condition_number_threshold:
         warnings.warn(
@@ -140,5 +145,6 @@ def calibrate(
         coefficients=coefficients,
         residuals=residuals,
         condition_number=condition_number,
+        singular_values=singular_values,
         n_terms=n_terms,
     )
