@@ -270,3 +270,54 @@ def test_out_of_range_segment_raises() -> None:
     bad_seg = Segment(maneuver="steady", heading="N", start_idx=0, end_idx=len(df) + 1)
     with pytest.raises(ValueError, match="invalid bounds"):
         calibrate(df, [bad_seg], _CONFIG_A)
+
+
+# ---------------------------------------------------------------------------
+# Low-sample warning tests
+# ---------------------------------------------------------------------------
+
+
+def test_low_sample_warning_c_model() -> None:
+    """C-model with < 10,000 samples should emit a UserWarning about sample count."""
+    c_true = np.arange(1, 19, dtype=np.float64) * 0.1
+    df, segments = _make_synthetic_data(c_true, _CONFIG_C, n_rows=80)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate(df, segments, _CONFIG_C)
+
+    sample_warnings = [
+        w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
+    ]
+    assert len(sample_warnings) == 1, (
+        f"Expected exactly one low-sample warning, got {len(sample_warnings)}"
+    )
+
+
+def test_no_low_sample_warning_when_sufficient() -> None:
+    """C-model with >= 10,000 samples should NOT emit a low-sample warning."""
+    c_true = np.arange(1, 19, dtype=np.float64) * 0.1
+    df, segments = _make_synthetic_data(c_true, _CONFIG_C, n_rows=10_000)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate(df, segments, _CONFIG_C)
+
+    sample_warnings = [
+        w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
+    ]
+    assert len(sample_warnings) == 0, (
+        f"Expected no low-sample warning with 10,000 rows, got {len(sample_warnings)}"
+    )
+
+
+def test_no_low_sample_warning_for_b_model() -> None:
+    """B-model should never emit a low-sample warning regardless of row count."""
+    c_true = np.array([1.0, -2.0, 0.5, 0.3, -0.1, 0.7, -0.4, 0.2, -0.8])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_B, n_rows=80)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        calibrate(df, segments, _CONFIG_B)
+
+    sample_warnings = [
+        w for w in caught if "10,000" in str(w.message) or "10000" in str(w.message)
+    ]
+    assert len(sample_warnings) == 0

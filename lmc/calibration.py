@@ -14,6 +14,8 @@ from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
 from lmc.segmentation import Segment
 
+_MIN_SAMPLES_C_MODEL = 10_000
+
 
 @dataclass(frozen=True)
 class CalibrationResult:
@@ -99,6 +101,15 @@ def calibrate(
     if A.shape[0] == 0:
         raise ValueError(
             "All segments produced empty slices; cannot calibrate with zero rows."
+        )
+
+    if config.model_terms in ("c", "d") and A.shape[0] < _MIN_SAMPLES_C_MODEL:
+        warnings.warn(
+            f"C/D-model calibration has {A.shape[0]:,} samples, but at least "
+            f"{_MIN_SAMPLES_C_MODEL:,} are recommended for stable 18+ term "
+            "estimation. Consider collecting more calibration data or using "
+            "the B-model (model_terms='b') with fewer terms.",
+            stacklevel=2,
         )
 
     n_terms = A.shape[1]
