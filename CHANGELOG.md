@@ -2,6 +2,66 @@
 
 <!-- version list -->
 
+## v1.20.0 (2026-03-21)
+
+### Bug Fixes
+
+- Persist regularization diagnostics to JSON output, tighten multicollinear test, add CLI
+  mutual-exclusion test
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Use compute_uv=False in SVD and add ridge diagnostic tests
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+### Chores
+
+- Add scikit-learn as a runtime dependency
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Apply ruff format to config.py
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Update uv.lock after merge from main
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+### Features
+
+- Add LASSO and ElasticNet CLI flags to calibrate command
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Add LASSO and ElasticNet config fields with mutual-exclusion validator
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Add LASSO and ElasticNet regularization for multicollinearity handling
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Add selected_alpha and effective_dof diagnostic fields to CalibrationResult
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Implement ElasticNet (L1+L2) regression branch in calibrate()
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+- Implement LASSO (L1) regression branch in calibrate()
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+### Testing
+
+- Add multicollinear comparison tests for ridge, LASSO, and ElasticNet
+  ([#64](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/64),
+  [`3f0f4a1`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3f0f4a137efa659a01204c2f873412945ec71ce6))
+
+
 ## v1.19.0 (2026-03-21)
 
 ### Documentation
