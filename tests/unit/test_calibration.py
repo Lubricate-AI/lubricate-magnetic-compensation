@@ -388,7 +388,7 @@ def _make_multicollinear_df(
     rng = np.random.default_rng(seed)
     # All rows point nearly the same direction — creates multicollinearity.
     base_direction = np.array([0.6, 0.8, 0.0])
-    noise = rng.normal(0, 0.001, size=(n_rows, 3))
+    noise = rng.normal(0, 1e-5, size=(n_rows, 3))
     directions = base_direction + noise
     norms = np.linalg.norm(directions, axis=1, keepdims=True)
     cosines = directions / norms

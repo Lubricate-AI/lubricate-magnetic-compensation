@@ -159,6 +159,8 @@ def calibrate_cmd(
             "coefficients": result.coefficients.tolist(),
             "n_terms": result.n_terms,
             "condition_number": result.condition_number,
+            "selected_alpha": result.selected_alpha,
+            "effective_dof": result.effective_dof,
         }
         output.write_text(json.dumps(coef_data, indent=2))
 
