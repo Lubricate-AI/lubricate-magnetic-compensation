@@ -372,3 +372,106 @@ def test_elastic_net_l1_ratio_1_behaves_like_lasso() -> None:
     result = calibrate(df, segments, config)
     assert result.effective_dof is not None
     assert result.effective_dof < result.n_terms
+
+
+def _make_multicollinear_df(
+    c_true: np.ndarray,
+    config: PipelineConfig,
+    n_rows: int = 100,
+    seed: int = 99,
+) -> tuple[pl.DataFrame, list[Segment]]:
+    """Build data where direction cosines are nearly constant (multicollinear).
+
+    All aircraft headings point nearly the same direction, so the feature
+    matrix columns are highly correlated, creating an ill-conditioned system.
+    """
+    rng = np.random.default_rng(seed)
+    # All rows point nearly the same direction — creates multicollinearity.
+    base_direction = np.array([0.6, 0.8, 0.0])
+    noise = rng.normal(0, 0.001, size=(n_rows, 3))
+    directions = base_direction + noise
+    norms = np.linalg.norm(directions, axis=1, keepdims=True)
+    cosines = directions / norms
+
+    b_total = 50_000.0
+    bx = cosines[:, 0] * b_total
+    by = cosines[:, 1] * b_total
+    bz = cosines[:, 2] * b_total
+
+    base_df = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: bx,
+            COL_BY: by,
+            COL_BZ: bz,
+        }
+    )
+
+    A = build_feature_matrix(base_df, config).to_numpy()
+    delta_b = A @ c_true + rng.normal(0, 0.1, size=n_rows)
+    df = base_df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=n_rows)]
+    return df, segments
+
+
+def test_ridge_more_stable_than_ols_on_multicollinear_data() -> None:
+    """Ridge coefficients have smaller L2 norm than OLS on ill-conditioned data."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config_ols = PipelineConfig(model_terms="a")
+    config_ridge = PipelineConfig(model_terms="a", use_ridge=True, ridge_alpha=1.0)
+
+    df, segments = _make_multicollinear_df(c_true, config_ols)
+
+    result_ols = calibrate(df, segments, config_ols)
+    result_ridge = calibrate(df, segments, config_ridge)
+
+    ols_norm = np.linalg.norm(result_ols.coefficients)
+    ridge_norm = np.linalg.norm(result_ridge.coefficients)
+    assert ridge_norm < ols_norm, (
+        f"Expected ridge norm {ridge_norm:.3f} < OLS norm {ols_norm:.3f}"
+    )
+
+
+def test_lasso_more_stable_than_ols_on_multicollinear_data() -> None:
+    """LASSO coefficients have smaller L1 norm than OLS on ill-conditioned data."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config_ols = PipelineConfig(model_terms="a")
+    config_lasso = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1.0)
+
+    df, segments = _make_multicollinear_df(c_true, config_ols)
+
+    result_ols = calibrate(df, segments, config_ols)
+    result_lasso = calibrate(df, segments, config_lasso)
+
+    ols_l1 = float(np.sum(np.abs(result_ols.coefficients)))
+    lasso_l1 = float(np.sum(np.abs(result_lasso.coefficients)))
+    assert lasso_l1 < ols_l1, (
+        f"Expected LASSO L1 norm {lasso_l1:.3f} < OLS L1 norm {ols_l1:.3f}"
+    )
+
+
+def test_elastic_net_more_stable_than_ols_on_multicollinear_data() -> None:
+    """ElasticNet coefficients have smaller norm than OLS on ill-conditioned data."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config_ols = PipelineConfig(model_terms="a")
+    config_en = PipelineConfig(
+        model_terms="a",
+        use_elastic_net=True,
+        elastic_net_alpha=1.0,
+        elastic_net_l1_ratio=0.5,
+    )
+
+    df, segments = _make_multicollinear_df(c_true, config_ols)
+
+    result_ols = calibrate(df, segments, config_ols)
+    result_en = calibrate(df, segments, config_en)
+
+    ols_norm = np.linalg.norm(result_ols.coefficients)
+    en_norm = np.linalg.norm(result_en.coefficients)
+    assert en_norm < ols_norm, (
+        f"Expected ElasticNet norm {en_norm:.3f} < OLS norm {ols_norm:.3f}"
+    )
