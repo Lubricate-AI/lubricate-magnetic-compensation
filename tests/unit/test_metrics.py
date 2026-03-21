@@ -194,6 +194,7 @@ def test_empty_segments_raises() -> None:
         coefficients=np.zeros(3),
         residuals=np.array([]),
         condition_number=1.0,
+        singular_values=np.ones(3, dtype=np.float64),
         n_terms=3,
     )
     with pytest.raises(ValueError, match="segments must be non-empty"):
@@ -210,6 +211,7 @@ def test_residuals_length_mismatch_raises() -> None:
         coefficients=result.coefficients,
         residuals=result.residuals[:-1],  # one element short
         condition_number=result.condition_number,
+        singular_values=result.singular_values,
         n_terms=result.n_terms,
     )
     with pytest.raises(ValueError, match="does not match"):

@@ -43,6 +43,7 @@ def _dummy_cal_result(n_terms: int) -> CalibrationResult:
         coefficients=np.ones(n_terms, dtype=np.float64),
         residuals=np.zeros(10, dtype=np.float64),
         condition_number=1.0,
+        singular_values=np.ones(n_terms, dtype=np.float64),
         n_terms=n_terms,
     )
 
