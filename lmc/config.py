@@ -61,7 +61,13 @@ class PipelineConfig(BaseModel):
     ridge_alpha: float = Field(
         default=1e-3,
         ge=0.0,
-        description="Ridge regularisation strength. Ignored when use_ridge is False.",
+        description=(
+            "Ridge regularisation strength in the unnormalized convention: "
+            "the user-visible alpha corresponds to the objective "
+            "||Aw - dB||² + alpha * ||w||², applied via the augmented-matrix method. "
+            "lasso_alpha and elastic_net_alpha share this same convention. "
+            "Ignored when use_ridge is False."
+        ),
     )
     use_lasso: bool = Field(
         default=False,
