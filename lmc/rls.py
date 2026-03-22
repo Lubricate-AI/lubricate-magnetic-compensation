@@ -130,7 +130,8 @@ def update_rls(
     new_theta = theta + k * e
 
     # Covariance update: P′ = (P − k aᵀ P) / λ
-    new_P = (P - np.outer(k, a @ P)) / lam
+    # Reuse Pa (= P @ a) since P is symmetric, so a @ P == Pa
+    new_P = (P - np.outer(k, Pa)) / lam
     # Symmetrize to prevent numerical drift
     new_P = (new_P + new_P.T) / 2.0
 
@@ -196,9 +197,9 @@ def rls_to_calibration_result(
 ) -> CalibrationResult:
     """Convert an RLSState to a CalibrationResult for use with compensate().
 
-    Computes residuals from ``df`` using the current RLS coefficients and
-    derives diagnostic statistics (condition number, singular values) from
-    the inverse of the covariance matrix P ≈ (AᵀA)⁻¹.
+    Computes residuals, singular values, and condition number from ``df``
+    using the current RLS coefficients, matching the semantics of
+    :func:`lmc.calibrate`.
 
     Parameters
     ----------
@@ -215,26 +216,23 @@ def rls_to_calibration_result(
     CalibrationResult
         Drop-in replacement usable with :func:`lmc.compensate`.
     """
+    if COL_DELTA_B not in df.columns:
+        raise ValueError(
+            f"Column '{COL_DELTA_B}' is required to compute residuals but was not "
+            f"found in the DataFrame. Available columns: {df.columns}"
+        )
+
     A: npt.NDArray[np.float64] = build_feature_matrix(df, config).to_numpy()
     dB: npt.NDArray[np.float64] = df[COL_DELTA_B].to_numpy().astype(np.float64)
     residuals = np.asarray(A @ state.coefficients - dB, dtype=np.float64)
 
-    # P ≈ (AᵀA)⁻¹, so eigenvalues of P ≈ 1/s_i²
-    # Approximate singular values of A: s_i ≈ 1 / sqrt(eigenval_i(P))
-    eigenvalues = np.linalg.eigvalsh(state.covariance)
-    # Clamp to avoid sqrt of tiny negatives from numerical noise
-    eigenvalues = np.maximum(eigenvalues, 0.0)
-    approx_singular_values = np.sort(1.0 / np.sqrt(eigenvalues + 1e-30))[::-1]
-    approx_singular_values = np.asarray(approx_singular_values, dtype=np.float64)
-
-    condition_number = float(
-        approx_singular_values[0] / (approx_singular_values[-1] + 1e-30)
-    )
+    singular_values = np.asarray(np.linalg.svd(A, compute_uv=False), dtype=np.float64)
+    condition_number = float(singular_values[0] / singular_values[-1])
 
     return CalibrationResult(
         coefficients=state.coefficients.copy(),
         residuals=residuals,
         condition_number=condition_number,
-        singular_values=approx_singular_values,
+        singular_values=singular_values,
         n_terms=state.n_terms,
     )
