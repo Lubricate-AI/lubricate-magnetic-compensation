@@ -588,3 +588,91 @@ def test_condition_number_matches_singular_values() -> None:
 
     expected_cond = result.singular_values[0] / result.singular_values[-1]
     np.testing.assert_allclose(result.condition_number, expected_cond, rtol=1e-10)
+
+
+# ---------------------------------------------------------------------------
+# Cross-validation alpha selection tests
+# ---------------------------------------------------------------------------
+
+
+def _make_multicollinear_df_for_cv(
+    n_rows: int = 200, seed: int = 0
+) -> tuple[pl.DataFrame, list[Segment]]:
+    """Return (df, segments) with a nearly collinear A-matrix.
+
+    Uses a larger n_rows than typical to ensure TimeSeriesSplit has enough
+    data in each fold (at least n_terms rows per fold).
+    """
+    rng = np.random.default_rng(seed)
+    # Make all three direction cosine vectors nearly identical to force
+    # collinearity in the feature matrix.
+    raw = rng.standard_normal((n_rows, 3))
+    raw[:, 1] = raw[:, 0] + rng.normal(0, 0.01, n_rows)
+    raw[:, 2] = raw[:, 0] + rng.normal(0, 0.01, n_rows)
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    cosines = raw / norms
+    b_total = 50_000.0
+    base_df = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: cosines[:, 0] * b_total,
+            COL_BY: cosines[:, 1] * b_total,
+            COL_BZ: cosines[:, 2] * b_total,
+        }
+    )
+    config = PipelineConfig(model_terms="a")
+    A = build_feature_matrix(base_df, config).to_numpy()
+    c_true = np.array([1.0, -2.0, 0.5])
+    delta_b = A @ c_true + rng.normal(0, 0.1, n_rows)
+    df = base_df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=n_rows)]
+    return df, segments
+
+
+def test_ridge_cv_selected_alpha_is_a_finite_positive_float() -> None:
+    """When use_cv=True with use_ridge=True, selected_alpha must be a positive finite float."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+def test_ridge_cv_selected_alpha_differs_from_fixed_default() -> None:
+    """CV-selected alpha should not always equal the default 1e-3 (data-driven)."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    # The CV-chosen alpha is stored in selected_alpha (not the config's ridge_alpha)
+    assert result.selected_alpha is not None
+
+
+def test_lasso_cv_selected_alpha_is_finite_positive() -> None:
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_lasso=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+def test_elastic_net_cv_selected_alpha_is_finite_positive() -> None:
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_elastic_net=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+def test_cv_not_enabled_uses_config_alpha() -> None:
+    """Without use_cv, selected_alpha must equal the config-specified ridge_alpha."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_ridge=True, ridge_alpha=0.42, use_cv=False)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha == pytest.approx(0.42)
