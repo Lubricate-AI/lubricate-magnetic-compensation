@@ -3,10 +3,24 @@
 from __future__ import annotations
 
 import numpy as np
+import polars as pl
 import pytest
 
 from lmc.calibration import CalibrationResult
-from lmc.rls import RLSState, initialize_rls, update_rls
+from lmc.columns import (
+    COL_ALT,
+    COL_BTOTAL,
+    COL_BX,
+    COL_BY,
+    COL_BZ,
+    COL_DELTA_B,
+    COL_LAT,
+    COL_LON,
+    COL_TIME,
+)
+from lmc.config import PipelineConfig
+from lmc.features import build_feature_matrix
+from lmc.rls import RLSState, initialize_rls, update_rls, update_rls_batch
 
 
 def _make_result(n_terms: int) -> CalibrationResult:
@@ -174,3 +188,97 @@ def test_update_rls_forgetting_factor_less_than_one_inflates_covariance() -> Non
     ns_fo = update_rls(state_forget, a, y)
     # With forgetting, P is divided by λ < 1 → larger P
     assert np.trace(ns_fo.covariance) > np.trace(ns_no.covariance)
+
+
+# ---------------------------------------------------------------------------
+# update_rls_batch tests
+# ---------------------------------------------------------------------------
+
+_CONFIG_A = PipelineConfig(model_terms="a")
+
+
+def _make_rls_synthetic_df(n_rows: int, seed: int = 42) -> pl.DataFrame:
+    """Synthetic magnetometer DataFrame with COL_DELTA_B pre-populated.
+
+    Uses ground-truth coefficients [1.0, -2.0, 0.5] for model_terms='a'.
+    """
+    rng = np.random.default_rng(seed)
+    raw = rng.standard_normal((n_rows, 3))
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    cosines = raw / norms
+    b_total = 50_000.0
+    bx = cosines[:, 0] * b_total
+    by = cosines[:, 1] * b_total
+    bz = cosines[:, 2] * b_total
+    base_df = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: bx,
+            COL_BY: by,
+            COL_BZ: bz,
+        }
+    )
+    c_true = np.array([1.0, -2.0, 0.5])
+    A = build_feature_matrix(base_df, _CONFIG_A).to_numpy()
+    delta_b = A @ c_true
+    return base_df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+
+
+def test_update_rls_batch_increments_n_samples() -> None:
+    df = _make_rls_synthetic_df(50)
+    state = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=1e4 * np.eye(3, dtype=np.float64),
+        forgetting_factor=1.0,
+        n_samples=0,
+        n_terms=3,
+    )
+    new_state = update_rls_batch(state, df, _CONFIG_A)
+    assert new_state.n_samples == 50
+
+
+def test_update_rls_batch_matches_sequential() -> None:
+    """update_rls_batch must produce identical result to sequential update_rls."""
+    df = _make_rls_synthetic_df(20)
+    A = build_feature_matrix(df, _CONFIG_A).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy()
+
+    init_state = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=1e4 * np.eye(3, dtype=np.float64),
+        forgetting_factor=1.0,
+        n_samples=0,
+        n_terms=3,
+    )
+
+    # Sequential
+    state_seq = init_state
+    for i in range(len(df)):
+        state_seq = update_rls(state_seq, A[i], dB[i])
+
+    # Batch
+    state_batch = update_rls_batch(init_state, df, _CONFIG_A)
+
+    np.testing.assert_allclose(
+        state_batch.coefficients, state_seq.coefficients, atol=1e-12
+    )
+    np.testing.assert_allclose(
+        state_batch.covariance, state_seq.covariance, atol=1e-12
+    )
+
+
+def test_update_rls_batch_raises_if_no_delta_b() -> None:
+    df = _make_rls_synthetic_df(10).drop(COL_DELTA_B)
+    state = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=np.eye(3, dtype=np.float64),
+        forgetting_factor=1.0,
+        n_samples=0,
+        n_terms=3,
+    )
+    with pytest.raises(ValueError, match=COL_DELTA_B):
+        update_rls_batch(state, df, _CONFIG_A)

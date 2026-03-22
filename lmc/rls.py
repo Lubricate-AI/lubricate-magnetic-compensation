@@ -6,8 +6,12 @@ from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
+import polars as pl
 
 from lmc.calibration import CalibrationResult
+from lmc.columns import COL_DELTA_B
+from lmc.config import PipelineConfig
+from lmc.features import build_feature_matrix
 
 
 @dataclass
@@ -137,3 +141,49 @@ def update_rls(
         n_samples=state.n_samples + 1,
         n_terms=state.n_terms,
     )
+
+
+def update_rls_batch(
+    state: RLSState,
+    df: pl.DataFrame,
+    config: PipelineConfig,
+) -> RLSState:
+    """Apply RLS updates for every row in a DataFrame segment.
+
+    Builds the feature matrix from ``df`` via ``build_feature_matrix``, then
+    iterates row-by-row calling :func:`update_rls`.  Equivalent to calling
+    ``update_rls`` in a loop but more convenient for segment-based workflows.
+
+    Parameters
+    ----------
+    state:
+        Current RLS state.  Not mutated — a new state is returned.
+    df:
+        DataFrame containing all required magnetometer columns plus
+        ``COL_DELTA_B``.
+    config:
+        Pipeline configuration used to build the feature matrix.
+
+    Returns
+    -------
+    RLSState
+        Updated state after processing all rows in ``df``.
+
+    Raises
+    ------
+    ValueError
+        If ``COL_DELTA_B`` is absent from ``df``.
+    """
+    if COL_DELTA_B not in df.columns:
+        raise ValueError(
+            f"Column '{COL_DELTA_B}' is required for RLS updates but was not "
+            f"found in the DataFrame. Available columns: {df.columns}"
+        )
+
+    A: npt.NDArray[np.float64] = build_feature_matrix(df, config).to_numpy()
+    dB: npt.NDArray[np.float64] = df[COL_DELTA_B].to_numpy().astype(np.float64)
+
+    current = state
+    for i in range(A.shape[0]):
+        current = update_rls(current, A[i], dB[i])
+    return current
