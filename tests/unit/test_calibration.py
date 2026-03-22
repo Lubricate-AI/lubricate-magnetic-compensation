@@ -423,9 +423,7 @@ def test_lasso_uses_n_samples_scaled_alpha_internally() -> None:
     result = calibrate(df, segments, config)
 
     # Recompute manually with the expected scaled alpha
-    A = build_feature_matrix(
-        df.slice(0, n_rows), config
-    ).to_numpy()
+    A = build_feature_matrix(df.slice(0, n_rows), config).to_numpy()
     dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
     from sklearn.linear_model import Lasso as _Lasso
 
