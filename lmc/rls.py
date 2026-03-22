@@ -6,12 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
-import polars as pl
 
 from lmc.calibration import CalibrationResult
-from lmc.columns import COL_DELTA_B
-from lmc.config import PipelineConfig
-from lmc.features import build_feature_matrix
 
 
 @dataclass

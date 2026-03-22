@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import numpy as np
-import polars as pl
 import pytest
 
 from lmc.calibration import CalibrationResult
-from lmc.rls import RLSState, initialize_rls
+from lmc.rls import initialize_rls
 
 
 def _make_result(n_terms: int) -> CalibrationResult:
