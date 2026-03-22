@@ -727,3 +727,41 @@ def test_auto_regularize_with_cv_uses_cv_alpha() -> None:
     assert result.selected_alpha is not None
     assert math.isfinite(result.selected_alpha)
     assert result.selected_alpha > 0.0
+
+
+# ---------------------------------------------------------------------------
+# auto_regularize tests
+# ---------------------------------------------------------------------------
+
+
+def test_auto_regularize_engages_ridge_when_ill_conditioned() -> None:
+    """auto_regularize=True must set selected_alpha when condition_number is huge."""
+    df, segments = _make_ill_conditioned_df()
+    config = PipelineConfig(model_terms="a", auto_regularize=True)
+    result = calibrate(df, segments, config)
+    # Ill-conditioned → auto ridge should have been engaged.
+    assert result.condition_number > config.condition_number_threshold
+    assert result.selected_alpha is not None
+    assert result.selected_alpha > 0.0
+
+
+def test_auto_regularize_does_not_engage_when_well_conditioned() -> None:
+    """auto_regularize=True must NOT apply regularization when well-conditioned."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A, n_rows=200)
+    config = PipelineConfig(model_terms="a", auto_regularize=True)
+    result = calibrate(df, segments, config)
+    # Well-conditioned → OLS should have been used.
+    assert result.condition_number <= config.condition_number_threshold
+    assert result.selected_alpha is None
+
+
+def test_auto_regularize_respects_explicit_method() -> None:
+    """When use_lasso=True and auto_regularize=True, LASSO (not ridge) is used."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(
+        model_terms="a", auto_regularize=True, use_lasso=True, lasso_alpha=0.01
+    )
+    result = calibrate(df, segments, config)
+    # Explicit LASSO takes priority — selected_alpha should equal lasso_alpha.
+    assert result.selected_alpha == pytest.approx(0.01)  # pyright: ignore[reportUnknownMemberType]
