@@ -428,7 +428,7 @@ def test_lasso_uses_n_samples_scaled_alpha_internally() -> None:
     from sklearn.linear_model import Lasso as _Lasso
 
     expected = _Lasso(alpha=1e-3 * n_rows, fit_intercept=False, max_iter=10_000)
-    expected.fit(A, dB)
+    expected.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
     np.testing.assert_allclose(result.coefficients, expected.coef_, atol=1e-10)
 
 
@@ -461,7 +461,7 @@ def test_lasso_cv_selected_alpha_in_unnormalized_convention() -> None:
 
     cv = _TSS(n_splits=5)
     model_cv = _LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
-    model_cv.fit(A, dB)
+    model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
 
     # After fix: selected_alpha = model_cv.alpha_ / n_rows
     expected_user_alpha = float(model_cv.alpha_) / n_rows
