@@ -588,3 +588,183 @@ def test_condition_number_matches_singular_values() -> None:
 
     expected_cond = result.singular_values[0] / result.singular_values[-1]
     np.testing.assert_allclose(result.condition_number, expected_cond, rtol=1e-10)
+
+
+# ---------------------------------------------------------------------------
+# Cross-validation alpha selection tests
+# ---------------------------------------------------------------------------
+
+
+def _make_multicollinear_df_for_cv(
+    n_rows: int = 200, seed: int = 0
+) -> tuple[pl.DataFrame, list[Segment]]:
+    """Return (df, segments) with a nearly collinear A-matrix.
+
+    Uses a larger n_rows than typical to ensure TimeSeriesSplit has enough
+    data in each fold (at least n_terms rows per fold).
+    """
+    rng = np.random.default_rng(seed)
+    # Make all three direction cosine vectors nearly identical to force
+    # collinearity in the feature matrix.
+    raw = rng.standard_normal((n_rows, 3))
+    raw[:, 1] = raw[:, 0] + rng.normal(0, 0.01, n_rows)
+    raw[:, 2] = raw[:, 0] + rng.normal(0, 0.01, n_rows)
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    cosines = raw / norms
+    b_total = 50_000.0
+    base_df = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: cosines[:, 0] * b_total,
+            COL_BY: cosines[:, 1] * b_total,
+            COL_BZ: cosines[:, 2] * b_total,
+        }
+    )
+    config = PipelineConfig(model_terms="a")
+    A = build_feature_matrix(base_df, config).to_numpy()
+    c_true = np.array([1.0, -2.0, 0.5])
+    delta_b = A @ c_true + rng.normal(0, 0.1, n_rows)
+    df = base_df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=n_rows)]
+    return df, segments
+
+
+def test_ridge_cv_selected_alpha_is_a_finite_positive_float() -> None:
+    """use_cv=True with use_ridge=True yields a positive finite selected_alpha."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+def test_ridge_cv_selected_alpha_is_positive() -> None:
+    """When use_cv=True with use_ridge=True, selected_alpha must be positive."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    # CV picks from logspace(-6, 2, 100); the fixed default 1e-3 may or may not be
+    # chosen, but the alpha must come from the CV grid, not be trivially None.
+    assert result.selected_alpha > 0.0
+
+
+def test_lasso_cv_selected_alpha_is_finite_positive() -> None:
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(model_terms="a", use_lasso=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+def test_elastic_net_cv_selected_alpha_is_finite_positive() -> None:
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(
+        model_terms="a", use_elastic_net=True, use_cv=True, cv_folds=5
+    )
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+def test_cv_not_enabled_uses_config_alpha() -> None:
+    """Without use_cv, selected_alpha must equal the config-specified ridge_alpha."""
+    df, segments = _make_multicollinear_df_for_cv()
+    config = PipelineConfig(
+        model_terms="a", use_ridge=True, ridge_alpha=0.42, use_cv=False
+    )
+    result = calibrate(df, segments, config)
+    assert result.selected_alpha == pytest.approx(0.42)  # pyright: ignore[reportUnknownMemberType]
+
+
+def _make_ill_conditioned_df(
+    n_rows: int = 200, seed: int = 7
+) -> tuple[pl.DataFrame, list[Segment]]:
+    """Return (df, segments) whose A-matrix has condition_number >> 1e6."""
+    rng = np.random.default_rng(seed)
+    raw = rng.standard_normal((n_rows, 3))
+    raw[:, 1] = raw[:, 0] + rng.normal(0, 1e-7, n_rows)
+    raw[:, 2] = raw[:, 0] + rng.normal(0, 1e-7, n_rows)
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    cosines = raw / norms
+    b_total = 50_000.0
+    base_df = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: cosines[:, 0] * b_total,
+            COL_BY: cosines[:, 1] * b_total,
+            COL_BZ: cosines[:, 2] * b_total,
+        }
+    )
+    config = PipelineConfig(model_terms="a")
+    A = build_feature_matrix(base_df, config).to_numpy()
+    c_true = np.array([1.0, -2.0, 0.5])
+    delta_b = A @ c_true + rng.normal(0, 0.1, n_rows)
+    df = base_df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=n_rows)]
+    return df, segments
+
+
+def test_auto_regularize_with_cv_uses_cv_alpha() -> None:
+    """auto_regularize=True + use_cv=True: CV-selected alpha when ill-conditioned."""
+    df, segments = _make_ill_conditioned_df()
+    config = PipelineConfig(
+        model_terms="a", auto_regularize=True, use_cv=True, cv_folds=5
+    )
+    result = calibrate(df, segments, config)
+    assert result.condition_number > config.condition_number_threshold
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
+
+
+# ---------------------------------------------------------------------------
+# auto_regularize tests
+# ---------------------------------------------------------------------------
+
+
+def test_auto_regularize_engages_ridge_when_ill_conditioned() -> None:
+    """auto_regularize=True must set selected_alpha when condition_number is huge."""
+    df, segments = _make_ill_conditioned_df()
+    config = PipelineConfig(model_terms="a", auto_regularize=True)
+    result = calibrate(df, segments, config)
+    # Ill-conditioned → auto ridge should have been engaged.
+    assert result.condition_number > config.condition_number_threshold
+    assert result.selected_alpha is not None
+    assert result.selected_alpha > 0.0
+
+
+def test_auto_regularize_does_not_engage_when_well_conditioned() -> None:
+    """auto_regularize=True must NOT apply regularization when well-conditioned."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    df, segments = _make_synthetic_data(c_true, _CONFIG_A, n_rows=200)
+    config = PipelineConfig(model_terms="a", auto_regularize=True)
+    result = calibrate(df, segments, config)
+    # Well-conditioned → OLS should have been used.
+    assert result.condition_number <= config.condition_number_threshold
+    assert result.selected_alpha is None
+
+
+def test_auto_regularize_respects_explicit_method() -> None:
+    """When use_lasso=True and auto_regularize=True, LASSO (not ridge) is used."""
+    df, segments = _make_ill_conditioned_df()
+    config = PipelineConfig(
+        model_terms="a", auto_regularize=True, use_lasso=True, lasso_alpha=0.01
+    )
+    result = calibrate(df, segments, config)
+    # Confirm the fixture is ill-conditioned so auto_regularize would have fired
+    # without the explicit use_lasso flag.
+    assert result.condition_number > config.condition_number_threshold
+    # Explicit LASSO takes priority — selected_alpha should equal lasso_alpha.
+    assert result.selected_alpha == pytest.approx(0.01)  # pyright: ignore[reportUnknownMemberType]

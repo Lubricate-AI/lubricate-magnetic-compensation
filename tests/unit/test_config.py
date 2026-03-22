@@ -212,3 +212,41 @@ def test_use_heading_specific_calibration_defaults_false() -> None:
 def test_use_heading_specific_calibration_can_be_enabled() -> None:
     cfg = PipelineConfig(use_heading_specific_calibration=True)
     assert cfg.use_heading_specific_calibration is True
+
+
+def test_pipeline_config_use_cv_default() -> None:
+    cfg = PipelineConfig()
+    assert cfg.use_cv is False
+
+
+def test_pipeline_config_cv_folds_default() -> None:
+    cfg = PipelineConfig()
+    assert cfg.cv_folds == 5
+
+
+def test_pipeline_config_auto_regularize_default() -> None:
+    cfg = PipelineConfig()
+    assert cfg.auto_regularize is False
+
+
+def test_pipeline_config_rejects_cv_folds_less_than_2() -> None:
+    with pytest.raises(ValidationError):
+        PipelineConfig(use_cv=True, cv_folds=1)
+
+
+def test_pipeline_config_cv_folds_10_is_valid() -> None:
+    cfg = PipelineConfig(use_cv=True, cv_folds=10)
+    assert cfg.cv_folds == 10
+
+
+def test_pipeline_config_auto_regularize_with_explicit_method_is_valid() -> None:
+    # auto_regularize can coexist with explicit regularization flags
+    cfg = PipelineConfig(auto_regularize=True, use_ridge=True, ridge_alpha=0.1)
+    assert cfg.auto_regularize is True
+    assert cfg.use_ridge is True
+
+
+def test_pipeline_config_auto_regularize_without_explicit_method_is_valid() -> None:
+    cfg = PipelineConfig(auto_regularize=True)
+    assert cfg.auto_regularize is True
+    assert cfg.use_ridge is False

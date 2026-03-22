@@ -101,6 +101,30 @@ def calibrate_cmd(
         str | None,
         typer.Option("--segment-label-col", help="Pre-labeled segment column name."),
     ] = None,
+    use_cv: Annotated[
+        bool,
+        typer.Option(
+            "--use-cv/--no-use-cv",
+            help="Use cross-validation to select optimal alpha for regularization.",
+        ),
+    ] = False,
+    cv_folds: Annotated[
+        int,
+        typer.Option(
+            "--cv-folds",
+            help="Number of time-series CV folds (requires --use-cv).",
+        ),
+    ] = 5,
+    auto_regularize: Annotated[
+        bool,
+        typer.Option(
+            "--auto-regularize/--no-auto-regularize",
+            help=(
+                "Automatically engage ridge regression when the A-matrix is "
+                "ill-conditioned (condition_number > condition_number_threshold)."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Calibrate Tolles-Lawson model from FOM flight data."""
     try:
@@ -132,6 +156,9 @@ def calibrate_cmd(
             elastic_net_alpha=elastic_net_alpha,
             elastic_net_l1_ratio=elastic_net_l1_ratio,
             segment_label_col=segment_label_col,
+            use_cv=use_cv,
+            cv_folds=cv_folds,
+            auto_regularize=auto_regularize,
         )
 
         df = pl.read_csv(input_csv)

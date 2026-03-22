@@ -10,8 +10,12 @@ import numpy.typing as npt
 import polars as pl
 from sklearn.linear_model import (
     ElasticNet,
+    ElasticNetCV,
     Lasso,
+    LassoCV,
+    RidgeCV,
 )
+from sklearn.model_selection import TimeSeriesSplit
 
 from lmc.columns import COL_DELTA_B
 from lmc.config import PipelineConfig
@@ -146,31 +150,71 @@ def calibrate(
     selected_alpha: float | None = None
     effective_dof: float | None = None
 
-    if config.use_ridge:
-        sqrt_alpha = np.sqrt(config.ridge_alpha)
-        A_aug: npt.NDArray[np.float64] = np.vstack([A, sqrt_alpha * np.eye(n_terms)])
-        dB_aug: npt.NDArray[np.float64] = np.concatenate([dB, np.zeros(n_terms)])
-        coefficients, _, _, _ = np.linalg.lstsq(A_aug, dB_aug, rcond=None)
-        selected_alpha = config.ridge_alpha
+    _use_ridge = config.use_ridge
+    _use_lasso = config.use_lasso
+    _use_elastic_net = config.use_elastic_net
+
+    if config.auto_regularize and condition_number > config.condition_number_threshold:
+        if not (_use_ridge or _use_lasso or _use_elastic_net):
+            _use_ridge = True
+
+    _CV_ALPHAS = np.logspace(-6, 2, 100)
+
+    if _use_ridge:
+        if config.use_cv:
+            cv = TimeSeriesSplit(n_splits=config.cv_folds)
+            model_cv = RidgeCV(alphas=_CV_ALPHAS, cv=cv, fit_intercept=False)
+            model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+            coefficients = np.asarray(model_cv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
+            selected_alpha = float(model_cv.alpha_)  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
+        else:
+            sqrt_alpha = np.sqrt(config.ridge_alpha)
+            A_aug: npt.NDArray[np.float64] = np.vstack(
+                [A, sqrt_alpha * np.eye(n_terms)]
+            )
+            dB_aug: npt.NDArray[np.float64] = np.concatenate([dB, np.zeros(n_terms)])
+            coefficients, _, _, _ = np.linalg.lstsq(A_aug, dB_aug, rcond=None)
+            selected_alpha = config.ridge_alpha
         effective_dof = float(
-            np.sum(singular_values**2 / (singular_values**2 + config.ridge_alpha))
+            np.sum(singular_values**2 / (singular_values**2 + selected_alpha))
         )
-    elif config.use_lasso:
-        model = Lasso(alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000)
-        model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
-        coefficients = np.asarray(model.coef_, dtype=np.float64)
-        selected_alpha = config.lasso_alpha
+    elif _use_lasso:
+        if config.use_cv:
+            cv = TimeSeriesSplit(n_splits=config.cv_folds)
+            model_lcv = LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
+            model_lcv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+            coefficients = np.asarray(model_lcv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
+            selected_alpha = float(model_lcv.alpha_)
+        else:
+            model_l = Lasso(
+                alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000
+            )
+            model_l.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+            coefficients = np.asarray(model_l.coef_, dtype=np.float64)
+            selected_alpha = config.lasso_alpha
         effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
-    elif config.use_elastic_net:
-        model = ElasticNet(
-            alpha=config.elastic_net_alpha,
-            l1_ratio=config.elastic_net_l1_ratio,
-            fit_intercept=False,
-            max_iter=10_000,
-        )
-        model.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
-        coefficients = np.asarray(model.coef_, dtype=np.float64)
-        selected_alpha = config.elastic_net_alpha
+    elif _use_elastic_net:
+        if config.use_cv:
+            cv = TimeSeriesSplit(n_splits=config.cv_folds)
+            model_ecv = ElasticNetCV(
+                l1_ratio=config.elastic_net_l1_ratio,
+                cv=cv,
+                fit_intercept=False,
+                max_iter=10_000,
+            )
+            model_ecv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+            coefficients = np.asarray(model_ecv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
+            selected_alpha = float(model_ecv.alpha_)
+        else:
+            model_e = ElasticNet(
+                alpha=config.elastic_net_alpha,
+                l1_ratio=config.elastic_net_l1_ratio,
+                fit_intercept=False,
+                max_iter=10_000,
+            )
+            model_e.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+            coefficients = np.asarray(model_e.coef_, dtype=np.float64)
+            selected_alpha = config.elastic_net_alpha
         effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
     else:
         coefficients, _, _, _ = np.linalg.lstsq(A, dB, rcond=None)
