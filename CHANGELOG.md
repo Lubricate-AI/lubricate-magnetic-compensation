@@ -2,6 +2,94 @@
 
 <!-- version list -->
 
+## v1.22.0 (2026-03-22)
+
+### Bug Fixes
+
+- Add HeadingType annotation to fix pyright error in compensate_heading_specific
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Add input validation guards to compute_vif
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Address PR review issues in heading-specific calibration
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Apply ruff format to vif module and tests
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Initialize interference array to zero; fix docstring; add missing heading test
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Make segmentation helpers public; fix pyright type errors
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Resolve lint errors in test files
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+### Chores
+
+- Commit uv.lock and implementation plan doc
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Remove implementation plan doc from repo
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Update uv.lock ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+### Features
+
+- Add heading-specific compensation routing
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Add per-heading calibration with VIF diagnostics
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Add use_heading_specific_calibration config field
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Add VIF computation for multicollinearity diagnostics
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Export heading-specific calibration API from lmc
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Heading-specific model selection for multicollinearity reduction
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+### Refactoring
+
+- Clarify A-matrix rebuild comment; add multi-segment heading test
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+- Remove internal function names from config field description
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+### Testing
+
+- Add integration tests for heading-specific model selection
+  ([#69](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/69),
+  [`8e3caa5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/8e3caa535431fbba01ee31bf93ca024ba1ecf869))
+
+
 ## v1.21.0 (2026-03-22)
 
 ### Bug Fixes
