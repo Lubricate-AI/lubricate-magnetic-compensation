@@ -158,6 +158,15 @@ class PipelineConfig(BaseModel):
             "detected, preventing zero-weight extrapolation."
         ),
     )
+    use_heading_specific_calibration: bool = Field(
+        default=False,
+        description=(
+            "Fit separate Tolles-Lawson models per heading bin to reduce "
+            "heading-dependent multicollinearity. When True, use "
+            "calibrate_per_heading() and compensate_heading_specific() "
+            "instead of calibrate() and compensate()."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_bandpass(self) -> PipelineConfig:

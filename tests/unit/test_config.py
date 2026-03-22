@@ -202,3 +202,13 @@ def test_single_method_enabled_is_valid() -> None:
     PipelineConfig(use_ridge=True)
     PipelineConfig(use_lasso=True)
     PipelineConfig(use_elastic_net=True)
+
+
+def test_use_heading_specific_calibration_defaults_false() -> None:
+    cfg = PipelineConfig()
+    assert cfg.use_heading_specific_calibration is False
+
+
+def test_use_heading_specific_calibration_can_be_enabled() -> None:
+    cfg = PipelineConfig(use_heading_specific_calibration=True)
+    assert cfg.use_heading_specific_calibration is True
