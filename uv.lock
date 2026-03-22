@@ -552,7 +552,7 @@ wheels = [
 
 [[package]]
 name = "lubricate-magnetic-compensation"
-version = "1.21.0"
+version = "1.23.0"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
