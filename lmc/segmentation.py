@@ -134,11 +134,11 @@ def _auto_detect_segments(df: pl.DataFrame, config: PipelineConfig) -> list[Segm
         )
 
     headings = np.asarray(df[COL_HEADING].to_numpy(), dtype=np.float64)
-    centres = _resolve_bin_centres(config, headings)
+    centres = resolve_bin_centres(config, headings)
 
     # Assign heading bin to each row (None for transitional rows).
     heading_labels: list[HeadingType | None] = [
-        _assign_heading_bin(h, centres, config.heading_tolerance_deg) for h in headings
+        assign_heading_bin(h, centres, config.heading_tolerance_deg) for h in headings
     ]
 
     time = np.asarray(df[COL_TIME].to_numpy(), dtype=np.float64)
@@ -248,7 +248,7 @@ def _estimate_reference_heading(headings: npt.NDArray[np.float64]) -> float:
     return float(ref)
 
 
-def _resolve_bin_centres(
+def resolve_bin_centres(
     config: PipelineConfig,
     headings: npt.NDArray[np.float64],
 ) -> dict[HeadingType, float]:
@@ -281,7 +281,7 @@ def _resolve_bin_centres(
     return dict(zip(_HEADING_ORDER, clockwise, strict=True))
 
 
-def _assign_heading_bin(
+def assign_heading_bin(
     deg: float,
     centres: dict[HeadingType, float],
     tol: float,

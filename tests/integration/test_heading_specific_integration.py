@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 
 from lmc import (
@@ -17,7 +19,7 @@ from lmc.earth_field import compute_interference
 from tests.integration.synthetic import make_fom_dataframe
 
 
-def _make_pipeline_data(model_terms: str = "b", seed: int = 42):
+def _make_pipeline_data(model_terms: Literal["a", "b", "c", "d"] = "b", seed: int = 42):
     """Return (df_with_delta_b, segments, config) for a 4-heading FOM flight."""
     rng = np.random.default_rng(seed)
     n_terms_map = {"a": 3, "b": 9, "c": 18}

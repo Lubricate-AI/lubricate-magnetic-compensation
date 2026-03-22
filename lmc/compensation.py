@@ -97,7 +97,7 @@ def compensate_heading_specific(
         column count does not match the ``n_terms`` of the calibrated heading
         models in ``result``.
     """
-    from lmc.segmentation import _assign_heading_bin, _resolve_bin_centres
+    from lmc.segmentation import assign_heading_bin, resolve_bin_centres
 
     if COL_HEADING not in df.columns:
         raise ValueError(
@@ -117,14 +117,14 @@ def compensate_heading_specific(
         )
 
     headings = np.asarray(df[COL_HEADING].to_numpy(), dtype=np.float64)
-    centres = _resolve_bin_centres(config, headings)
+    centres = resolve_bin_centres(config, headings)
 
     # Route each row to the nearest calibrated heading.  Tolerance 180° ensures
     # every row is always assigned (nearest-neighbour, no gaps).
     interference = np.zeros(len(df), dtype=np.float64)
     for h_label, cal in result.per_heading.items():
         mask = np.array(
-            [_assign_heading_bin(h, centres, 180.0) == h_label for h in headings],
+            [assign_heading_bin(h, centres, 180.0) == h_label for h in headings],
             dtype=bool,
         )
         if mask.any():

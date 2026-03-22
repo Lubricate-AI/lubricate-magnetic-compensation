@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 import polars as pl
 import pytest
 
@@ -48,9 +49,9 @@ def _make_df_with_delta_b(
             COL_BZ: bz,
         }
     )
-    A = build_feature_matrix(df, config).to_numpy()
-    c_true = rng.standard_normal(A.shape[1])
-    delta_b = (A @ c_true).astype(np.float64)
+    A: npt.NDArray[np.float64] = build_feature_matrix(df, config).to_numpy()
+    c_true: npt.NDArray[np.float64] = rng.standard_normal(A.shape[1])  # type: ignore[assignment]
+    delta_b: npt.NDArray[np.float64] = (A @ c_true).astype(np.float64)  # type: ignore[assignment]
     return df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
 
 
@@ -71,7 +72,7 @@ def _make_multi_heading_data(
         segments.append(
             Segment(  # type: ignore[arg-type]
                 maneuver="steady",
-                heading=h,
+                heading=h,  # pyright: ignore[reportArgumentType]
                 start_idx=offset,
                 end_idx=offset + n_per_heading,
             )
@@ -126,7 +127,7 @@ def test_calibrate_per_heading_single_heading() -> None:
     rng = np.random.default_rng(99)
     config = PipelineConfig(model_terms="a")
     df = _make_df_with_delta_b(60, rng, config)
-    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=60)]  # type: ignore[arg-type]
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=60)]  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
     result = calibrate_per_heading(df, segments, config)
     assert set(result.per_heading.keys()) == {"N"}
     assert set(result.per_heading_vif.keys()) == {"N"}
@@ -138,8 +139,8 @@ def test_calibrate_per_heading_multiple_segments_same_heading() -> None:
     config = PipelineConfig(model_terms="a")
     df = _make_df_with_delta_b(120, rng, config)
     segments = [
-        Segment(maneuver="steady", heading="N", start_idx=0, end_idx=60),  # type: ignore[arg-type]
-        Segment(maneuver="pitch", heading="N", start_idx=60, end_idx=120),  # type: ignore[arg-type]
+        Segment(maneuver="steady", heading="N", start_idx=0, end_idx=60),  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
+        Segment(maneuver="pitch", heading="N", start_idx=60, end_idx=120),  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
     ]
     result = calibrate_per_heading(df, segments, config)
     assert set(result.per_heading.keys()) == {"N"}
