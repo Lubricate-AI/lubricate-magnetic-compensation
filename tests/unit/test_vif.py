@@ -54,11 +54,13 @@ def test_constant_column_gives_inf_vif() -> None:
     """A constant column has ss_tot == 0 — VIF should be inf."""
     rng = np.random.default_rng(2)
     # First column is constant, second and third are random.
-    A = np.column_stack([
-        np.ones(50),
-        rng.standard_normal(50),
-        rng.standard_normal(50),
-    ])
+    A = np.column_stack(
+        [
+            np.ones(50),
+            rng.standard_normal(50),
+            rng.standard_normal(50),
+        ]
+    )
     vif = compute_vif(A)
     assert np.isinf(vif[0]), "Constant column should have VIF == inf"
 
