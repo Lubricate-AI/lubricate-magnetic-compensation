@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v1.23.1 (2026-03-22)
+
+### Chores
+
+- Remove implementation plan (attached to issue #68)
+  ([#73](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/73),
+  [`4a1a933`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/4a1a933c095c286f573a2385df3374545b42b8a1))
+
+### Documentation
+
+- Add implementation plan for RLSState mutability contract
+  ([#73](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/73),
+  [`4a1a933`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/4a1a933c095c286f573a2385df3374545b42b8a1))
+
+### Refactoring
+
+- Make RLSState frozen and clarify immutable update contract
+  ([#73](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/73),
+  [`4a1a933`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/4a1a933c095c286f573a2385df3374545b42b8a1))
+
+### Testing
+
+- Add failing test for frozen RLSState
+  ([#73](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/73),
+  [`4a1a933`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/4a1a933c095c286f573a2385df3374545b42b8a1))
+
+
 ## v1.23.0 (2026-03-22)
 
 ### Bug Fixes
