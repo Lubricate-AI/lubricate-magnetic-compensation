@@ -165,8 +165,8 @@ def calibrate(
             cv = TimeSeriesSplit(n_splits=config.cv_folds)
             model_cv = RidgeCV(alphas=_CV_ALPHAS, cv=cv, fit_intercept=False)
             model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
-            coefficients = np.asarray(model_cv.coef_, dtype=np.float64)
-            selected_alpha = float(model_cv.alpha_)
+            coefficients = np.asarray(model_cv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
+            selected_alpha = float(model_cv.alpha_)  # pyright: ignore[reportUnknownMemberType, reportArgumentType]
         else:
             sqrt_alpha = np.sqrt(config.ridge_alpha)
             A_aug: npt.NDArray[np.float64] = np.vstack(
@@ -183,7 +183,7 @@ def calibrate(
             cv = TimeSeriesSplit(n_splits=config.cv_folds)
             model_lcv = LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
             model_lcv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
-            coefficients = np.asarray(model_lcv.coef_, dtype=np.float64)
+            coefficients = np.asarray(model_lcv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
             selected_alpha = float(model_lcv.alpha_)
         else:
             model_l = Lasso(
@@ -203,7 +203,7 @@ def calibrate(
                 max_iter=10_000,
             )
             model_ecv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
-            coefficients = np.asarray(model_ecv.coef_, dtype=np.float64)
+            coefficients = np.asarray(model_ecv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
             selected_alpha = float(model_ecv.alpha_)
         else:
             model_e = ElasticNet(

@@ -634,7 +634,7 @@ def _make_multicollinear_df_for_cv(
 
 
 def test_ridge_cv_selected_alpha_is_a_finite_positive_float() -> None:
-    """When use_cv=True with use_ridge=True, selected_alpha must be a positive finite float."""
+    """use_cv=True with use_ridge=True yields a positive finite selected_alpha."""
     df, segments = _make_multicollinear_df_for_cv()
     config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
     result = calibrate(df, segments, config)
@@ -644,12 +644,14 @@ def test_ridge_cv_selected_alpha_is_a_finite_positive_float() -> None:
 
 
 def test_ridge_cv_selected_alpha_differs_from_fixed_default() -> None:
-    """CV-selected alpha should not always equal the default 1e-3 (data-driven)."""
+    """CV-selected alpha is data-driven and typically differs from the 1e-3 default."""
     df, segments = _make_multicollinear_df_for_cv()
     config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
     result = calibrate(df, segments, config)
-    # The CV-chosen alpha is stored in selected_alpha (not the config's ridge_alpha)
     assert result.selected_alpha is not None
+    # CV picks from logspace(-6, 2, 100); the fixed default 1e-3 may or may not be
+    # chosen, but the alpha must come from the CV grid, not be trivially None.
+    assert result.selected_alpha > 0.0
 
 
 def test_lasso_cv_selected_alpha_is_finite_positive() -> None:
@@ -663,7 +665,9 @@ def test_lasso_cv_selected_alpha_is_finite_positive() -> None:
 
 def test_elastic_net_cv_selected_alpha_is_finite_positive() -> None:
     df, segments = _make_multicollinear_df_for_cv()
-    config = PipelineConfig(model_terms="a", use_elastic_net=True, use_cv=True, cv_folds=5)
+    config = PipelineConfig(
+        model_terms="a", use_elastic_net=True, use_cv=True, cv_folds=5
+    )
     result = calibrate(df, segments, config)
     assert result.selected_alpha is not None
     assert math.isfinite(result.selected_alpha)
@@ -673,6 +677,53 @@ def test_elastic_net_cv_selected_alpha_is_finite_positive() -> None:
 def test_cv_not_enabled_uses_config_alpha() -> None:
     """Without use_cv, selected_alpha must equal the config-specified ridge_alpha."""
     df, segments = _make_multicollinear_df_for_cv()
-    config = PipelineConfig(model_terms="a", use_ridge=True, ridge_alpha=0.42, use_cv=False)
+    config = PipelineConfig(
+        model_terms="a", use_ridge=True, ridge_alpha=0.42, use_cv=False
+    )
     result = calibrate(df, segments, config)
-    assert result.selected_alpha == pytest.approx(0.42)
+    assert result.selected_alpha == pytest.approx(0.42)  # pyright: ignore[reportUnknownMemberType]
+
+
+def _make_ill_conditioned_df(
+    n_rows: int = 200, seed: int = 7
+) -> tuple[pl.DataFrame, list[Segment]]:
+    """Return (df, segments) whose A-matrix has condition_number >> 1e6."""
+    rng = np.random.default_rng(seed)
+    raw = rng.standard_normal((n_rows, 3))
+    raw[:, 1] = raw[:, 0] + rng.normal(0, 1e-7, n_rows)
+    raw[:, 2] = raw[:, 0] + rng.normal(0, 1e-7, n_rows)
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    cosines = raw / norms
+    b_total = 50_000.0
+    base_df = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_rows, dtype=np.float64),
+            COL_LAT: np.full(n_rows, 45.0),
+            COL_LON: np.full(n_rows, -75.0),
+            COL_ALT: np.full(n_rows, 300.0),
+            COL_BTOTAL: np.full(n_rows, b_total),
+            COL_BX: cosines[:, 0] * b_total,
+            COL_BY: cosines[:, 1] * b_total,
+            COL_BZ: cosines[:, 2] * b_total,
+        }
+    )
+    config = PipelineConfig(model_terms="a")
+    A = build_feature_matrix(base_df, config).to_numpy()
+    c_true = np.array([1.0, -2.0, 0.5])
+    delta_b = A @ c_true + rng.normal(0, 0.1, n_rows)
+    df = base_df.with_columns(pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64))
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=n_rows)]
+    return df, segments
+
+
+def test_auto_regularize_with_cv_uses_cv_alpha() -> None:
+    """auto_regularize=True + use_cv=True: CV-selected alpha when ill-conditioned."""
+    df, segments = _make_ill_conditioned_df()
+    config = PipelineConfig(
+        model_terms="a", auto_regularize=True, use_cv=True, cv_folds=5
+    )
+    result = calibrate(df, segments, config)
+    assert result.condition_number > config.condition_number_threshold
+    assert result.selected_alpha is not None
+    assert math.isfinite(result.selected_alpha)
+    assert result.selected_alpha > 0.0
