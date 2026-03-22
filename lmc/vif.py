@@ -28,7 +28,8 @@ def compute_vif(A: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     Raises
     ------
     ValueError
-        If ``A`` has fewer than 2 columns.
+        If ``A`` is not 2-dimensional, has fewer than 2 columns, or has fewer
+        than 2 rows.
     """
     if A.ndim != 2:
         raise ValueError(f"compute_vif requires a 2-D array; got {A.ndim}-D.")

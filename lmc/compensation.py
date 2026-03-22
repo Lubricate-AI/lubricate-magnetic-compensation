@@ -117,7 +117,9 @@ def compensate_heading_specific(
         )
 
     headings = np.asarray(df[COL_HEADING].to_numpy(), dtype=np.float64)
-    centres = resolve_bin_centres(config, headings)
+    all_centres = resolve_bin_centres(config, headings)
+    # Restrict to calibrated headings so every row routes to an available model.
+    centres = {k: v for k, v in all_centres.items() if k in result.per_heading}
 
     # Route each row to the nearest calibrated heading.  Tolerance 180° ensures
     # every row is always assigned (nearest-neighbour, no gaps).

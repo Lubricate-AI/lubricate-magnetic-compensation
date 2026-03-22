@@ -93,7 +93,13 @@ def calibrate_per_heading(
             a_blocks.append(a_seg)
         A: npt.NDArray[np.float64] = np.vstack(a_blocks)
 
-        per_heading_vif[heading] = compute_vif(A)
+        if A.shape[0] < 2:
+            per_heading_vif[heading] = np.full(A.shape[1], np.nan, dtype=np.float64)
+        else:
+            try:
+                per_heading_vif[heading] = compute_vif(A)
+            except ValueError:
+                per_heading_vif[heading] = np.full(A.shape[1], np.nan, dtype=np.float64)
 
     return HeadingCalibrationResult(
         per_heading=per_heading,

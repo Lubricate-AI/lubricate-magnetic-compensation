@@ -22,7 +22,7 @@ from tests.integration.synthetic import make_fom_dataframe
 def _make_pipeline_data(model_terms: Literal["a", "b", "c", "d"] = "b", seed: int = 42):
     """Return (df_with_delta_b, segments, config) for a 4-heading FOM flight."""
     rng = np.random.default_rng(seed)
-    n_terms_map = {"a": 3, "b": 9, "c": 18}
+    n_terms_map = {"a": 3, "b": 9, "c": 18, "d": 21}
     n_terms = n_terms_map[model_terms]
     c_true = rng.standard_normal(n_terms)
 
