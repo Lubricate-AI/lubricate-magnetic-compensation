@@ -47,6 +47,13 @@ from lmc.earth_field import compute_interference
 from lmc.features import build_feature_matrix
 from lmc.heading_calibration import HeadingCalibrationResult, calibrate_per_heading
 from lmc.metrics import FomReport, compute_fom_report
+from lmc.rls import (
+    RLSState,
+    initialize_rls,
+    rls_to_calibration_result,
+    update_rls,
+    update_rls_batch,
+)
 from lmc.segmentation import Segment, segment_fom
 from lmc.validation import validate_dataframe
 from lmc.vif import compute_vif
@@ -95,6 +102,11 @@ __all__ = [
     "COL_TMI_COMPENSATED",
     "REQUIRED_COLUMNS",
     "PipelineConfig",
+    "RLSState",
+    "initialize_rls",
+    "rls_to_calibration_result",
+    "update_rls",
+    "update_rls_batch",
     "Segment",
     "compute_interference",
     "build_feature_matrix",

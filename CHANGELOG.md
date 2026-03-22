@@ -2,6 +2,75 @@
 
 <!-- version list -->
 
+## v1.21.0 (2026-03-22)
+
+### Bug Fixes
+
+- Address Copilot PR review comments
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+### Chores
+
+- Commit uv.lock and implementation plan for RLS feature
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Fix lint issues in rls module
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Remove implementation plan (documented in issue #59)
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Remove unused imports from rls module (Task 1 cleanup)
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+### Documentation
+
+- Fix covariance docstring (np.diag gives variances, not std devs)
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+### Features
+
+- Add rls_to_calibration_result for compensate() compatibility
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Add RLSState dataclass and initialize_rls
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Add update_rls single-sample Kalman gain update
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Add update_rls_batch for DataFrame-based bulk updates
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Export RLS public API from lmc package
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Implement Recursive Least-Squares (RLS) for online coefficient updating
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+### Testing
+
+- Verify forgetting factor enables adaptation to coefficient drift
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+- Verify RLS convergence to OLS on static data
+  ([#67](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/67),
+  [`f892e1c`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f892e1c9f4a6a387c236059cff9fc0680578a9fb))
+
+
 ## v1.20.0 (2026-03-21)
 
 ### Bug Fixes
