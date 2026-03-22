@@ -30,10 +30,19 @@ def compute_vif(A: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     ValueError
         If ``A`` has fewer than 2 columns.
     """
+    if A.ndim != 2:
+        raise ValueError(
+            f"compute_vif requires a 2-D array; got {A.ndim}-D."
+        )
     n_terms = A.shape[1]
+    n_samples = A.shape[0]
     if n_terms < 2:
         raise ValueError(
             f"compute_vif requires at least 2 columns; got {n_terms}."
+        )
+    if n_samples < 2:
+        raise ValueError(
+            f"compute_vif requires at least 2 rows; got {n_samples}."
         )
 
     vif = np.empty(n_terms, dtype=np.float64)

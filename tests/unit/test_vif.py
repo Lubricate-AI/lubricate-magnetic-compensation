@@ -46,3 +46,23 @@ def test_vif_raises_on_single_column() -> None:
     A = np.ones((10, 1), dtype=np.float64)
     with pytest.raises(ValueError, match="at least 2 columns"):
         compute_vif(A)
+
+
+def test_constant_column_gives_inf_vif() -> None:
+    """A constant column has ss_tot == 0 — VIF should be inf."""
+    rng = np.random.default_rng(2)
+    # First column is constant, second and third are random.
+    A = np.column_stack([
+        np.ones(50),
+        rng.standard_normal(50),
+        rng.standard_normal(50),
+    ])
+    vif = compute_vif(A)
+    assert np.isinf(vif[0]), "Constant column should have VIF == inf"
+
+
+def test_vif_raises_on_1d_input() -> None:
+    """A 1-D array should raise ValueError, not an opaque IndexError."""
+    A = np.array([1.0, 2.0, 3.0])
+    with pytest.raises(ValueError, match="2-D array"):
+        compute_vif(A)
