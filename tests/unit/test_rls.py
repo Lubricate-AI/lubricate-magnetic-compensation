@@ -317,3 +317,73 @@ def test_rls_converges_to_ols_on_static_data() -> None:
     np.testing.assert_allclose(
         rls_state.coefficients, ols_result.coefficients, atol=1e-6
     )
+
+
+# ---------------------------------------------------------------------------
+# Forgetting factor adaptation test
+# ---------------------------------------------------------------------------
+
+
+def test_rls_forgetting_factor_adapts_to_coefficient_drift() -> None:
+    """λ < 1 adapts to new coefficients faster than λ = 1.
+
+    Two data segments with different ground-truth coefficients. After
+    training on segment 1 and then updating on segment 2, the model
+    with forgetting (λ=0.95) should produce lower coefficient error
+    on segment 2 than the model without forgetting (λ=1.0).
+    """
+    n_seg = 150
+
+    # Segment 1: ground-truth coefficients [1.0, -2.0, 0.5]
+    df1 = _make_rls_synthetic_df(n_rows=n_seg, seed=10)
+
+    # Segment 2: shifted ground-truth coefficients [3.0, 1.0, -1.5]
+    c2 = np.array([3.0, 1.0, -1.5])
+    rng = np.random.default_rng(20)
+    raw = rng.standard_normal((n_seg, 3))
+    cosines = raw / np.linalg.norm(raw, axis=1, keepdims=True)
+    b_total = 50_000.0
+    base_df2 = pl.DataFrame(
+        {
+            COL_TIME: np.arange(n_seg, dtype=np.float64),
+            COL_LAT: np.full(n_seg, 45.0),
+            COL_LON: np.full(n_seg, -75.0),
+            COL_ALT: np.full(n_seg, 300.0),
+            COL_BTOTAL: np.full(n_seg, b_total),
+            COL_BX: cosines[:, 0] * b_total,
+            COL_BY: cosines[:, 1] * b_total,
+            COL_BZ: cosines[:, 2] * b_total,
+        }
+    )
+    A2 = build_feature_matrix(base_df2, _CONFIG_A).to_numpy()
+    df2 = base_df2.with_columns(
+        pl.Series(COL_DELTA_B, A2 @ c2, dtype=pl.Float64)
+    )
+
+    init_no_forget = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=1e6 * np.eye(3, dtype=np.float64),
+        forgetting_factor=1.0,
+        n_samples=0,
+        n_terms=3,
+    )
+    init_forget = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=1e6 * np.eye(3, dtype=np.float64),
+        forgetting_factor=0.95,
+        n_samples=0,
+        n_terms=3,
+    )
+
+    # Both train on segment 1
+    state_no_forget = update_rls_batch(init_no_forget, df1, _CONFIG_A)
+    state_forget = update_rls_batch(init_forget, df1, _CONFIG_A)
+
+    # Both update on segment 2
+    state_no_forget = update_rls_batch(state_no_forget, df2, _CONFIG_A)
+    state_forget = update_rls_batch(state_forget, df2, _CONFIG_A)
+
+    # Model with forgetting should be closer to c2
+    error_no_forget = np.linalg.norm(state_no_forget.coefficients - c2)
+    error_forget = np.linalg.norm(state_forget.coefficients - c2)
+    assert error_forget < error_no_forget
