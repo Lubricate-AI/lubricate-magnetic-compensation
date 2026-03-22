@@ -202,6 +202,12 @@ def calibrate(
             selected_alpha = config.lasso_alpha
         effective_dof = float(np.sum(np.abs(coefficients) > 0.0))
     elif _use_elastic_net:
+        # Alpha convention: same unnormalized (ridge) convention as lasso_alpha.
+        # Multiply by n_samples before passing to sklearn ElasticNet to compensate
+        # for sklearn's (1/2n)-normalized loss. For CV, divide returned alpha_
+        # back to restore user convention. selected_alpha always stores the
+        # user-facing value.
+        n_samples = A.shape[0]
         if config.use_cv:
             cv = TimeSeriesSplit(n_splits=config.cv_folds)
             model_ecv = ElasticNetCV(
@@ -212,10 +218,10 @@ def calibrate(
             )
             model_ecv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
             coefficients = np.asarray(model_ecv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
-            selected_alpha = float(model_ecv.alpha_)
+            selected_alpha = float(model_ecv.alpha_) / n_samples
         else:
             model_e = ElasticNet(
-                alpha=config.elastic_net_alpha,
+                alpha=config.elastic_net_alpha * n_samples,
                 l1_ratio=config.elastic_net_l1_ratio,
                 fit_intercept=False,
                 max_iter=10_000,

@@ -359,12 +359,16 @@ def test_lasso_zeroes_weak_terms_under_strong_regularization() -> None:
 
 
 def test_elastic_net_recovers_reasonable() -> None:
-    """ElasticNet should return plausible, finite coefficients."""
+    """ElasticNet should return plausible, finite coefficients.
+
+    Uses a small elastic_net_alpha (unnormalized convention) so the scaled
+    sklearn alpha remains weak and near-exact recovery is expected.
+    """
     c_true = np.array([1.0, -2.0, 0.5])
     config = PipelineConfig(
         model_terms="a",
         use_elastic_net=True,
-        elastic_net_alpha=1e-3,
+        elastic_net_alpha=1e-5,
         elastic_net_l1_ratio=0.5,
     )
     df, segments = _make_synthetic_data(c_true, config)
@@ -464,6 +468,64 @@ def test_lasso_cv_selected_alpha_in_unnormalized_convention() -> None:
     model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
 
     # After fix: selected_alpha = model_cv.alpha_ / n_rows
+    expected_user_alpha = float(model_cv.alpha_) / n_rows
+    assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_elastic_net_uses_n_samples_scaled_alpha_internally() -> None:
+    """Non-CV ElasticNet should pass elastic_net_alpha * n_samples to sklearn.
+
+    sklearn's ElasticNet normalizes by n_samples; scaling up matches ridge convention.
+    """
+    c_true = np.array([1.0, -2.0, 0.5])
+    n_rows = 80
+    config = PipelineConfig(
+        model_terms="a",
+        use_elastic_net=True,
+        elastic_net_alpha=1e-3,
+        elastic_net_l1_ratio=0.5,
+    )
+    df, segments = _make_synthetic_data(c_true, config, n_rows=n_rows)
+
+    result = calibrate(df, segments, config)
+
+    A = build_feature_matrix(df.slice(0, n_rows), config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import ElasticNet as _ElasticNet
+
+    expected = _ElasticNet(
+        alpha=1e-3 * n_rows,
+        l1_ratio=0.5,
+        fit_intercept=False,
+        max_iter=10_000,
+    )
+    expected.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+    np.testing.assert_allclose(result.coefficients, expected.coef_, atol=1e-10)
+
+
+def test_elastic_net_cv_selected_alpha_in_unnormalized_convention() -> None:
+    """CV ElasticNet selected_alpha must be in unnormalized (ridge) convention."""
+    df, segments = _make_multicollinear_df_for_cv()
+    n_rows = len(df)
+    config = PipelineConfig(
+        model_terms="a", use_elastic_net=True, use_cv=True, cv_folds=5
+    )
+    result = calibrate(df, segments, config)
+
+    A = build_feature_matrix(df, config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import ElasticNetCV as _ENCV
+    from sklearn.model_selection import TimeSeriesSplit as _TSS
+
+    cv = _TSS(n_splits=5)
+    model_cv = _ENCV(
+        l1_ratio=config.elastic_net_l1_ratio,
+        cv=cv,
+        fit_intercept=False,
+        max_iter=10_000,
+    )
+    model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+
     expected_user_alpha = float(model_cv.alpha_) / n_rows
     assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
 
