@@ -6,7 +6,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-from lmc.calibration import CalibrationResult
+from lmc.calibration import CalibrationResult, calibrate
 from lmc.columns import (
     COL_ALT,
     COL_BTOTAL,
@@ -21,6 +21,7 @@ from lmc.columns import (
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
 from lmc.rls import RLSState, initialize_rls, update_rls, update_rls_batch
+from lmc.segmentation import Segment
 
 
 def _make_result(n_terms: int) -> CalibrationResult:
@@ -282,3 +283,37 @@ def test_update_rls_batch_raises_if_no_delta_b() -> None:
     )
     with pytest.raises(ValueError, match=COL_DELTA_B):
         update_rls_batch(state, df, _CONFIG_A)
+
+
+# ---------------------------------------------------------------------------
+# OLS equivalence test
+# ---------------------------------------------------------------------------
+
+
+def test_rls_converges_to_ols_on_static_data() -> None:
+    """RLS (λ=1) must match batch OLS after processing all training samples.
+
+    This is the primary correctness guarantee for the RLS implementation.
+    With no forgetting (λ=1) and sufficient samples, the RLS estimate
+    is mathematically equivalent to the batch least-squares solution.
+    """
+    df = _make_rls_synthetic_df(n_rows=200, seed=99)
+    segments = [Segment(maneuver="steady", heading="N", start_idx=0, end_idx=200)]
+
+    # Batch OLS reference
+    ols_result = calibrate(df, segments, _CONFIG_A)
+
+    # RLS cold start: zero coefficients, very large initial uncertainty
+    init_state = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=1e6 * np.eye(3, dtype=np.float64),
+        forgetting_factor=1.0,
+        n_samples=0,
+        n_terms=3,
+    )
+    rls_state = update_rls_batch(init_state, df, _CONFIG_A)
+
+    # After processing all data, RLS should match OLS to high precision
+    np.testing.assert_allclose(
+        rls_state.coefficients, ols_result.coefficients, atol=1e-6
+    )
