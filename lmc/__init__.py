@@ -41,10 +41,11 @@ from lmc.columns import (
     COL_TMI_COMPENSATED,
     REQUIRED_COLUMNS,
 )
-from lmc.compensation import compensate
+from lmc.compensation import compensate, compensate_heading_specific
 from lmc.config import PipelineConfig
 from lmc.earth_field import compute_interference
 from lmc.features import build_feature_matrix
+from lmc.heading_calibration import HeadingCalibrationResult, calibrate_per_heading
 from lmc.metrics import FomReport, compute_fom_report
 from lmc.rls import (
     RLSState,
@@ -55,14 +56,18 @@ from lmc.rls import (
 )
 from lmc.segmentation import Segment, segment_fom
 from lmc.validation import validate_dataframe
+from lmc.vif import compute_vif
 
 __all__ = [
     "AdaptiveCalibrationResult",
     "calibrate_adaptive_maneuvers",
     "compensate_adaptive",
     "CalibrationResult",
+    "HeadingCalibrationResult",
     "calibrate",
+    "calibrate_per_heading",
     "compensate",
+    "compensate_heading_specific",
     "COL_ALT",
     "COL_BTOTAL",
     "COL_BX",
@@ -107,6 +112,7 @@ __all__ = [
     "build_feature_matrix",
     "FomReport",
     "compute_fom_report",
+    "compute_vif",
     "segment_fom",
     "validate_dataframe",
 ]
