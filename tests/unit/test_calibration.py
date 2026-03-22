@@ -758,10 +758,13 @@ def test_auto_regularize_does_not_engage_when_well_conditioned() -> None:
 
 def test_auto_regularize_respects_explicit_method() -> None:
     """When use_lasso=True and auto_regularize=True, LASSO (not ridge) is used."""
-    df, segments = _make_multicollinear_df_for_cv()
+    df, segments = _make_ill_conditioned_df()
     config = PipelineConfig(
         model_terms="a", auto_regularize=True, use_lasso=True, lasso_alpha=0.01
     )
     result = calibrate(df, segments, config)
+    # Confirm the fixture is ill-conditioned so auto_regularize would have fired
+    # without the explicit use_lasso flag.
+    assert result.condition_number > config.condition_number_threshold
     # Explicit LASSO takes priority — selected_alpha should equal lasso_alpha.
     assert result.selected_alpha == pytest.approx(0.01)  # pyright: ignore[reportUnknownMemberType]
