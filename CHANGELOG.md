@@ -2,6 +2,51 @@
 
 <!-- version list -->
 
+## v1.23.0 (2026-03-22)
+
+### Bug Fixes
+
+- Resolve lint violations and strengthen CV test assertions
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+### Features
+
+- Add --use-cv, --cv-folds, --auto-regularize CLI flags to calibrate command
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+- Add use_cv, cv_folds, auto_regularize fields to PipelineConfig
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+- Cross-validation and automatic regularization method selection
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+- Implement CV-based alpha selection using TimeSeriesSplit
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+### Testing
+
+- Add precondition guard to auto_regularize explicit method test
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+- Add unit tests for auto_regularize trigger in calibrate()
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+- Rename vacuous CV test to accurately describe its assertion
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+- Strengthen CLI flag tests with positive exit code assertion
+  ([#71](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/71),
+  [`f8e6997`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/f8e69977f835cb87ceb718ed7de454140e4f8308))
+
+
 ## v1.22.0 (2026-03-22)
 
 ### Bug Fixes
