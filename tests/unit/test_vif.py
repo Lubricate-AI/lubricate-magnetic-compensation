@@ -32,7 +32,9 @@ def test_perfectly_correlated_column_gives_inf_vif() -> None:
     base = rng.standard_normal(100)
     A = np.column_stack([base, base, rng.standard_normal(100)])
     vif = compute_vif(A)
-    assert np.isinf(vif[0]) or np.isinf(vif[1]), "Duplicate column should produce inf VIF"
+    assert np.isinf(vif[0]) or np.isinf(vif[1]), (
+        "Duplicate column should produce inf VIF"
+    )
 
 
 def test_vif_returns_float64_array() -> None:

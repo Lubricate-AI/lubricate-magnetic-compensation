@@ -20,7 +20,7 @@ from lmc.columns import (
 )
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
-from lmc.heading_calibration import HeadingCalibrationResult, calibrate_per_heading
+from lmc.heading_calibration import calibrate_per_heading
 from lmc.segmentation import Segment
 
 
@@ -69,7 +69,12 @@ def _make_multi_heading_data(
         block = _make_df_with_delta_b(n_per_heading, rng, config)
         blocks.append(block)
         segments.append(
-            Segment(maneuver="steady", heading=h, start_idx=offset, end_idx=offset + n_per_heading)  # type: ignore[arg-type]
+            Segment(  # type: ignore[arg-type]
+                maneuver="steady",
+                heading=h,
+                start_idx=offset,
+                end_idx=offset + n_per_heading,
+            )
         )
         offset += n_per_heading
     df = pl.concat(blocks)
