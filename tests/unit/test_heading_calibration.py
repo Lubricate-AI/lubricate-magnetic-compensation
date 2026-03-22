@@ -125,3 +125,19 @@ def test_calibrate_per_heading_single_heading() -> None:
     result = calibrate_per_heading(df, segments, config)
     assert set(result.per_heading.keys()) == {"N"}
     assert set(result.per_heading_vif.keys()) == {"N"}
+
+
+def test_calibrate_per_heading_multiple_segments_same_heading() -> None:
+    """Two segments with the same heading should be pooled and return one key."""
+    rng = np.random.default_rng(77)
+    config = PipelineConfig(model_terms="a")
+    df = _make_df_with_delta_b(120, rng, config)
+    segments = [
+        Segment(maneuver="steady", heading="N", start_idx=0, end_idx=60),  # type: ignore[arg-type]
+        Segment(maneuver="pitch", heading="N", start_idx=60, end_idx=120),  # type: ignore[arg-type]
+    ]
+    result = calibrate_per_heading(df, segments, config)
+    assert set(result.per_heading.keys()) == {"N"}
+    assert set(result.per_heading_vif.keys()) == {"N"}
+    # The model was trained on 120 rows pooled from both segments.
+    assert result.per_heading["N"].residuals.shape[0] == 120

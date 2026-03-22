@@ -83,7 +83,9 @@ def calibrate_per_heading(
         # Fit per-heading model using existing calibrate().
         per_heading[heading] = calibrate(df, segs, config)
 
-        # Build stacked A matrix for VIF computation.
+        # Rebuild the stacked A matrix for VIF computation.  calibrate() builds
+        # the same matrix internally but does not expose it, so we reconstruct
+        # it here.  The cost is a second call to build_feature_matrix per heading.
         a_blocks: list[npt.NDArray[np.float64]] = []
         for seg in segs:
             segment_df = df.slice(seg.start_idx, seg.end_idx - seg.start_idx)
