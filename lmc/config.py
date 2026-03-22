@@ -166,6 +166,31 @@ class PipelineConfig(BaseModel):
             "heading-dependent multicollinearity."
         ),
     )
+    use_cv: bool = Field(
+        default=False,
+        description=(
+            "When True, use cross-validation to select the optimal alpha for the "
+            "active regularization method. Fold splitting uses TimeSeriesSplit to "
+            "respect the sequential nature of flight data."
+        ),
+    )
+    cv_folds: int = Field(
+        default=5,
+        ge=2,
+        description=(
+            "Number of time-series cross-validation folds used when use_cv=True. "
+            "Ignored when use_cv=False."
+        ),
+    )
+    auto_regularize: bool = Field(
+        default=False,
+        description=(
+            "When True, automatically engage ridge regression if "
+            "condition_number > condition_number_threshold and no explicit "
+            "regularization method is configured. Combined with use_cv=True, "
+            "this also selects alpha via cross-validation."
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_bandpass(self) -> PipelineConfig:
