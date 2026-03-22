@@ -87,3 +87,53 @@ def initialize_rls(
         n_samples=0,
         n_terms=n,
     )
+
+
+def update_rls(
+    state: RLSState,
+    a: npt.NDArray[np.float64],
+    y: float,
+) -> RLSState:
+    """Apply one RLS update step using the Kalman gain formulation.
+
+    Parameters
+    ----------
+    state:
+        Current RLS state.  Not mutated — a new state is returned.
+    a:
+        Feature vector for this sample, shape ``(n_terms,)``.
+    y:
+        Observed delta_B value for this sample (scalar).
+
+    Returns
+    -------
+    RLSState
+        Updated state with new coefficients and covariance.
+    """
+    lam = state.forgetting_factor
+    theta = state.coefficients
+    P = state.covariance
+
+    # Innovation
+    e = float(y) - float(a @ theta)
+
+    # Kalman gain: k = P a / (λ + aᵀ P a)
+    Pa = P @ a  # (p,)
+    gain_denom = lam + float(a @ Pa)
+    k = Pa / gain_denom  # (p,)
+
+    # Coefficient update
+    new_theta = theta + k * e
+
+    # Covariance update: P′ = (P − k aᵀ P) / λ
+    new_P = (P - np.outer(k, a @ P)) / lam
+    # Symmetrize to prevent numerical drift
+    new_P = (new_P + new_P.T) / 2.0
+
+    return RLSState(
+        coefficients=new_theta.astype(np.float64),
+        covariance=new_P.astype(np.float64),
+        forgetting_factor=lam,
+        n_samples=state.n_samples + 1,
+        n_terms=state.n_terms,
+    )
