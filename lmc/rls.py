@@ -25,7 +25,7 @@ class RLSState:
     covariance:
         Current covariance matrix, shape ``(n_terms, n_terms)``.
         Diagonal entries approximate per-coefficient variance.
-        Use ``np.diag(state.covariance)`` to get per-coefficient std devs.
+        Use ``np.sqrt(np.diag(state.covariance))`` to get per-coefficient std devs.
     forgetting_factor:
         Exponential forgetting rate λ ∈ (0, 1]. λ=1 weights all history equally.
         λ<1 down-weights old samples; try λ=0.95–0.99 for slowly drifting systems.
