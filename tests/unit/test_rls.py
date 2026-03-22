@@ -454,3 +454,19 @@ def test_rls_to_calibration_result_singular_values_descending() -> None:
     result = rls_to_calibration_result(state, df, _CONFIG_A)
     assert result.singular_values.shape == (3,)
     assert np.all(np.diff(result.singular_values) <= 0.0)  # descending
+
+
+# ---------------------------------------------------------------------------
+# Public API export test
+# ---------------------------------------------------------------------------
+
+
+def test_rls_symbols_exported_from_package() -> None:
+    """All public RLS symbols must be importable from the top-level lmc package."""
+    import lmc
+
+    assert hasattr(lmc, "RLSState")
+    assert hasattr(lmc, "initialize_rls")
+    assert hasattr(lmc, "update_rls")
+    assert hasattr(lmc, "update_rls_batch")
+    assert hasattr(lmc, "rls_to_calibration_result")
