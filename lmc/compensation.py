@@ -93,8 +93,9 @@ def compensate_heading_specific(
     Raises
     ------
     ValueError
-        If the feature matrix column count does not match ``result.n_terms``,
-        or if ``COL_HEADING`` is absent.
+        If ``COL_HEADING`` is absent from ``df``, or if the feature matrix
+        column count does not match the ``n_terms`` of the calibrated heading
+        models in ``result``.
     """
     from lmc.segmentation import _assign_heading_bin, _resolve_bin_centres
 
@@ -120,7 +121,7 @@ def compensate_heading_specific(
 
     # Route each row to the nearest calibrated heading.  Tolerance 180° ensures
     # every row is always assigned (nearest-neighbour, no gaps).
-    interference = np.empty(len(df), dtype=np.float64)
+    interference = np.zeros(len(df), dtype=np.float64)
     for h_label, cal in result.per_heading.items():
         mask = np.array(
             [_assign_heading_bin(h, centres, 180.0) == h_label for h in headings],

@@ -276,3 +276,13 @@ def test_compensate_heading_specific_raises_on_n_terms_mismatch() -> None:
     cal_result = calibrate_per_heading(df, segments, config_a)
     with pytest.raises(ValueError, match="n_terms"):
         compensate_heading_specific(df, cal_result, config_b)
+
+
+def test_compensate_heading_specific_raises_when_heading_col_missing() -> None:
+    config = PipelineConfig(model_terms="a")
+    df, segments = _make_heading_specific_data(config)
+    cal_result = calibrate_per_heading(df, segments, config)
+    # Drop the heading column.
+    df_no_heading = df.drop(COL_HEADING)
+    with pytest.raises(ValueError, match=COL_HEADING):
+        compensate_heading_specific(df_no_heading, cal_result, config)
