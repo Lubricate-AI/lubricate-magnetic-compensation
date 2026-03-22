@@ -322,9 +322,13 @@ def test_calibration_result_existing_sites_unbroken() -> None:
 
 
 def test_lasso_recovers_reasonable() -> None:
-    """LASSO introduces bias but should return plausible, finite coefficients."""
+    """LASSO introduces bias but should return plausible, finite coefficients.
+
+    Uses a small lasso_alpha (unnormalized convention) so the scaled sklearn
+    alpha remains weak and near-exact recovery is expected.
+    """
     c_true = np.array([1.0, -2.0, 0.5])
-    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-3)
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-5)
     df, segments = _make_synthetic_data(c_true, config)
     result = calibrate(df, segments, config)
     assert result.coefficients.shape == (3,)
@@ -398,6 +402,72 @@ def test_elastic_net_l1_ratio_1_behaves_like_lasso() -> None:
     result = calibrate(df, segments, config)
     assert result.effective_dof is not None
     assert result.effective_dof < result.n_terms
+
+
+# ---------------------------------------------------------------------------
+# Alpha convention tests: unnormalized (ridge) convention
+# ---------------------------------------------------------------------------
+
+
+def test_lasso_uses_n_samples_scaled_alpha_internally() -> None:
+    """Non-CV LASSO should pass lasso_alpha * n_samples to sklearn Lasso.
+
+    sklearn's Lasso normalizes by n_samples internally, so to maintain
+    the unnormalized (ridge) alpha convention, we scale up before passing.
+    """
+    c_true = np.array([1.0, -2.0, 0.5])
+    n_rows = 80
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-3)
+    df, segments = _make_synthetic_data(c_true, config, n_rows=n_rows)
+
+    result = calibrate(df, segments, config)
+
+    # Recompute manually with the expected scaled alpha
+    A = build_feature_matrix(
+        df.slice(0, n_rows), config
+    ).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import Lasso as _Lasso
+
+    expected = _Lasso(alpha=1e-3 * n_rows, fit_intercept=False, max_iter=10_000)
+    expected.fit(A, dB)
+    np.testing.assert_allclose(result.coefficients, expected.coef_, atol=1e-10)
+
+
+def test_lasso_selected_alpha_is_user_convention_not_scaled() -> None:
+    """CalibrationResult.selected_alpha should be the user-facing alpha, not scaled."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=2e-4)
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    # selected_alpha must reflect what the user passed, not the sklearn-scaled value
+    assert result.selected_alpha == pytest.approx(2e-4)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_lasso_cv_selected_alpha_in_unnormalized_convention() -> None:
+    """CV LASSO selected_alpha must be in unnormalized (ridge) convention.
+
+    LassoCV returns alpha in sklearn's convention (normalized by n_samples).
+    We must divide by n_samples to bring it into the same convention as ridge.
+    """
+    df, segments = _make_multicollinear_df_for_cv()
+    n_rows = len(df)
+    config = PipelineConfig(model_terms="a", use_lasso=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+
+    # Reproduce what LassoCV returns in sklearn convention
+    A = build_feature_matrix(df, config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import LassoCV as _LassoCV
+    from sklearn.model_selection import TimeSeriesSplit as _TSS
+
+    cv = _TSS(n_splits=5)
+    model_cv = _LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
+    model_cv.fit(A, dB)
+
+    # After fix: selected_alpha = model_cv.alpha_ / n_rows
+    expected_user_alpha = float(model_cv.alpha_) / n_rows
+    assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
 
 
 def _make_multicollinear_df(

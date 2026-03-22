@@ -179,15 +179,23 @@ def calibrate(
             np.sum(singular_values**2 / (singular_values**2 + selected_alpha))
         )
     elif _use_lasso:
+        # Alpha convention: user alpha follows the unnormalized ridge convention
+        # (||Aw-dB||² + alpha*||w||). sklearn normalizes by n_samples, so we
+        # multiply by n_samples to compensate. For CV, divide returned alpha_
+        # back to restore user convention. selected_alpha always stores the
+        # user-facing value.
+        n_samples = A.shape[0]
         if config.use_cv:
             cv = TimeSeriesSplit(n_splits=config.cv_folds)
             model_lcv = LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
             model_lcv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
             coefficients = np.asarray(model_lcv.coef_, dtype=np.float64)  # pyright: ignore[reportUnknownMemberType]
-            selected_alpha = float(model_lcv.alpha_)
+            selected_alpha = float(model_lcv.alpha_) / n_samples
         else:
             model_l = Lasso(
-                alpha=config.lasso_alpha, fit_intercept=False, max_iter=10_000
+                alpha=config.lasso_alpha * n_samples,
+                fit_intercept=False,
+                max_iter=10_000,
             )
             model_l.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
             coefficients = np.asarray(model_l.coef_, dtype=np.float64)
