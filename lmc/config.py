@@ -161,10 +161,9 @@ class PipelineConfig(BaseModel):
     use_heading_specific_calibration: bool = Field(
         default=False,
         description=(
-            "Fit separate Tolles-Lawson models per heading bin to reduce "
-            "heading-dependent multicollinearity. When True, use "
-            "calibrate_per_heading() and compensate_heading_specific() "
-            "instead of calibrate() and compensate()."
+            "When True, fit separate Tolles-Lawson models for each heading bin "
+            "and select the appropriate model at compensation time, reducing "
+            "heading-dependent multicollinearity."
         ),
     )
 
