@@ -187,3 +187,54 @@ def update_rls_batch(
     for i in range(A.shape[0]):
         current = update_rls(current, A[i], dB[i])
     return current
+
+
+def rls_to_calibration_result(
+    state: RLSState,
+    df: pl.DataFrame,
+    config: PipelineConfig,
+) -> CalibrationResult:
+    """Convert an RLSState to a CalibrationResult for use with compensate().
+
+    Computes residuals from ``df`` using the current RLS coefficients and
+    derives diagnostic statistics (condition number, singular values) from
+    the inverse of the covariance matrix P ≈ (AᵀA)⁻¹.
+
+    Parameters
+    ----------
+    state:
+        Current RLS state.
+    df:
+        DataFrame to compute residuals against.  Must contain
+        ``COL_DELTA_B``.
+    config:
+        Pipeline configuration used to build the feature matrix.
+
+    Returns
+    -------
+    CalibrationResult
+        Drop-in replacement usable with :func:`lmc.compensate`.
+    """
+    A: npt.NDArray[np.float64] = build_feature_matrix(df, config).to_numpy()
+    dB: npt.NDArray[np.float64] = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    residuals = np.asarray(A @ state.coefficients - dB, dtype=np.float64)
+
+    # P ≈ (AᵀA)⁻¹, so eigenvalues of P ≈ 1/s_i²
+    # Approximate singular values of A: s_i ≈ 1 / sqrt(eigenval_i(P))
+    eigenvalues = np.linalg.eigvalsh(state.covariance)
+    # Clamp to avoid sqrt of tiny negatives from numerical noise
+    eigenvalues = np.maximum(eigenvalues, 0.0)
+    approx_singular_values = np.sort(1.0 / np.sqrt(eigenvalues + 1e-30))[::-1]
+    approx_singular_values = np.asarray(approx_singular_values, dtype=np.float64)
+
+    condition_number = float(
+        approx_singular_values[0] / (approx_singular_values[-1] + 1e-30)
+    )
+
+    return CalibrationResult(
+        coefficients=state.coefficients.copy(),
+        residuals=residuals,
+        condition_number=condition_number,
+        singular_values=approx_singular_values,
+        n_terms=state.n_terms,
+    )

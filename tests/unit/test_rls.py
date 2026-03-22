@@ -20,7 +20,13 @@ from lmc.columns import (
 )
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
-from lmc.rls import RLSState, initialize_rls, update_rls, update_rls_batch
+from lmc.rls import (
+    RLSState,
+    initialize_rls,
+    rls_to_calibration_result,
+    update_rls,
+    update_rls_batch,
+)
 from lmc.segmentation import Segment
 
 
@@ -387,3 +393,64 @@ def test_rls_forgetting_factor_adapts_to_coefficient_drift() -> None:
     error_no_forget = np.linalg.norm(state_no_forget.coefficients - c2)
     error_forget = np.linalg.norm(state_forget.coefficients - c2)
     assert error_forget < error_no_forget
+
+
+# ---------------------------------------------------------------------------
+# rls_to_calibration_result tests
+# ---------------------------------------------------------------------------
+
+
+def _make_converged_state() -> RLSState:
+    """State with known coefficients [1.0, -2.0, 0.5] after processing 30 samples."""
+    df = _make_rls_synthetic_df(30)
+    init = RLSState(
+        coefficients=np.zeros(3, dtype=np.float64),
+        covariance=1e6 * np.eye(3, dtype=np.float64),
+        forgetting_factor=1.0,
+        n_samples=0,
+        n_terms=3,
+    )
+    return update_rls_batch(init, df, _CONFIG_A)
+
+
+def test_rls_to_calibration_result_returns_calibration_result() -> None:
+    df = _make_rls_synthetic_df(30)
+    state = _make_converged_state()
+    result = rls_to_calibration_result(state, df, _CONFIG_A)
+    assert isinstance(result, CalibrationResult)
+
+
+def test_rls_to_calibration_result_preserves_coefficients() -> None:
+    df = _make_rls_synthetic_df(30)
+    state = _make_converged_state()
+    result = rls_to_calibration_result(state, df, _CONFIG_A)
+    np.testing.assert_array_equal(result.coefficients, state.coefficients)
+
+
+def test_rls_to_calibration_result_n_terms_matches() -> None:
+    df = _make_rls_synthetic_df(30)
+    state = _make_converged_state()
+    result = rls_to_calibration_result(state, df, _CONFIG_A)
+    assert result.n_terms == 3
+
+
+def test_rls_to_calibration_result_residuals_shape() -> None:
+    df = _make_rls_synthetic_df(30)
+    state = _make_converged_state()
+    result = rls_to_calibration_result(state, df, _CONFIG_A)
+    assert result.residuals.shape == (30,)
+
+
+def test_rls_to_calibration_result_condition_number_is_positive() -> None:
+    df = _make_rls_synthetic_df(30)
+    state = _make_converged_state()
+    result = rls_to_calibration_result(state, df, _CONFIG_A)
+    assert result.condition_number > 0.0
+
+
+def test_rls_to_calibration_result_singular_values_descending() -> None:
+    df = _make_rls_synthetic_df(30)
+    state = _make_converged_state()
+    result = rls_to_calibration_result(state, df, _CONFIG_A)
+    assert result.singular_values.shape == (3,)
+    assert np.all(np.diff(result.singular_values) <= 0.0)  # descending
