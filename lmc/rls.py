@@ -14,9 +14,15 @@ from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
 
 
-@dataclass
+@dataclass(frozen=True)
 class RLSState:
-    """Mutable state for Recursive Least-Squares online coefficient updating.
+    """Immutable value object for Recursive Least-Squares online coefficient updating.
+
+    Each call to :func:`update_rls` or :func:`update_rls_batch` returns a *new*
+    ``RLSState`` without modifying the input.  Field reassignment is prohibited
+    by ``frozen=True``; however, the *content* of numpy array fields
+    (``coefficients``, ``covariance``) can still be mutated in-place — avoid
+    doing so.
 
     Attributes
     ----------

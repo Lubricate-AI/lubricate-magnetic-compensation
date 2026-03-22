@@ -464,3 +464,10 @@ def test_rls_symbols_exported_from_package() -> None:
     assert hasattr(lmc, "update_rls")
     assert hasattr(lmc, "update_rls_batch")
     assert hasattr(lmc, "rls_to_calibration_result")
+
+
+def test_rlsstate_is_frozen() -> None:
+    """RLSState must be immutable — field reassignment must raise an error."""
+    state = _make_state(3)
+    with pytest.raises(AttributeError):
+        state.n_samples = 99  # type: ignore[misc]
