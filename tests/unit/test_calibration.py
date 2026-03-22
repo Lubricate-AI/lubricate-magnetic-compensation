@@ -643,8 +643,8 @@ def test_ridge_cv_selected_alpha_is_a_finite_positive_float() -> None:
     assert result.selected_alpha > 0.0
 
 
-def test_ridge_cv_selected_alpha_differs_from_fixed_default() -> None:
-    """CV-selected alpha is data-driven and typically differs from the 1e-3 default."""
+def test_ridge_cv_selected_alpha_is_positive() -> None:
+    """When use_cv=True with use_ridge=True, selected_alpha must be positive."""
     df, segments = _make_multicollinear_df_for_cv()
     config = PipelineConfig(model_terms="a", use_ridge=True, use_cv=True, cv_folds=5)
     result = calibrate(df, segments, config)
