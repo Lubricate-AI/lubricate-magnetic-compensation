@@ -159,9 +159,7 @@ def test_update_rls_covariance_shrinks() -> None:
 def test_update_rls_covariance_is_symmetric() -> None:
     state = _make_state(3)
     new_state = update_rls(state, np.array([0.5, 0.3, 0.8]), y=1.0)
-    np.testing.assert_allclose(
-        new_state.covariance, new_state.covariance.T, atol=1e-12
-    )
+    np.testing.assert_allclose(new_state.covariance, new_state.covariance.T, atol=1e-12)
 
 
 def test_update_rls_single_term_exact() -> None:
@@ -192,9 +190,9 @@ def test_update_rls_forgetting_factor_less_than_one_inflates_covariance() -> Non
     a = np.array([0.1, 0.2, 0.3])
     y = 1.0
     ns_no = update_rls(state_no_forget, a, y)
-    ns_fo = update_rls(state_forget, a, y)
+    ns_with_forget = update_rls(state_forget, a, y)
     # With forgetting, P is divided by λ < 1 → larger P
-    assert np.trace(ns_fo.covariance) > np.trace(ns_no.covariance)
+    assert np.trace(ns_with_forget.covariance) > np.trace(ns_no.covariance)
 
 
 # ---------------------------------------------------------------------------
@@ -273,9 +271,7 @@ def test_update_rls_batch_matches_sequential() -> None:
     np.testing.assert_allclose(
         state_batch.coefficients, state_seq.coefficients, atol=1e-12
     )
-    np.testing.assert_allclose(
-        state_batch.covariance, state_seq.covariance, atol=1e-12
-    )
+    np.testing.assert_allclose(state_batch.covariance, state_seq.covariance, atol=1e-12)
 
 
 def test_update_rls_batch_raises_if_no_delta_b() -> None:
@@ -362,9 +358,7 @@ def test_rls_forgetting_factor_adapts_to_coefficient_drift() -> None:
         }
     )
     A2 = build_feature_matrix(base_df2, _CONFIG_A).to_numpy()
-    df2 = base_df2.with_columns(
-        pl.Series(COL_DELTA_B, A2 @ c2, dtype=pl.Float64)
-    )
+    df2 = base_df2.with_columns(pl.Series(COL_DELTA_B, A2 @ c2, dtype=pl.Float64))
 
     init_no_forget = RLSState(
         coefficients=np.zeros(3, dtype=np.float64),
