@@ -13,14 +13,18 @@ from lmc.columns import (
     COL_BX,
     COL_BY,
     COL_BZ,
+    COL_DELTA_B,
+    COL_HEADING,
     COL_LAT,
     COL_LON,
     COL_TIME,
     COL_TMI_COMPENSATED,
 )
-from lmc.compensation import compensate
+from lmc.compensation import compensate, compensate_heading_specific
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
+from lmc.heading_calibration import calibrate_per_heading
+from lmc.segmentation import Segment
 
 # ---------------------------------------------------------------------------
 # Config fixtures
@@ -193,3 +197,82 @@ def test_works_for_all_model_terms(model_terms: str) -> None:
     out = compensate(df, result, config)
     assert out.height == n_rows
     assert COL_TMI_COMPENSATED in out.columns
+
+
+# ---------------------------------------------------------------------------
+# Heading-specific compensation tests
+# ---------------------------------------------------------------------------
+
+
+def _make_heading_specific_data(
+    config: PipelineConfig,
+    n_per_heading: int = 60,
+    seed: int = 7,
+) -> tuple[pl.DataFrame, list[Segment]]:
+    """Build (df, segments) with four heading groups, each with a HEADING column."""
+    rng = np.random.default_rng(seed)
+    headings_map = {"N": 0.0, "E": 90.0, "S": 180.0, "W": 270.0}
+    blocks: list[pl.DataFrame] = []
+    segments: list[Segment] = []
+    offset = 0
+    for h_label, h_deg in headings_map.items():
+        raw = rng.standard_normal((n_per_heading, 3))
+        norms = np.linalg.norm(raw, axis=1, keepdims=True)
+        cosines = raw / norms
+        b_total = 50_000.0
+        df_block = pl.DataFrame(
+            {
+                COL_TIME: np.arange(offset, offset + n_per_heading, dtype=np.float64),
+                COL_LAT: np.full(n_per_heading, 45.0),
+                COL_LON: np.full(n_per_heading, -75.0),
+                COL_ALT: np.full(n_per_heading, 300.0),
+                COL_BTOTAL: np.full(n_per_heading, b_total),
+                COL_BX: cosines[:, 0] * b_total,
+                COL_BY: cosines[:, 1] * b_total,
+                COL_BZ: cosines[:, 2] * b_total,
+                COL_HEADING: np.full(n_per_heading, h_deg),
+            }
+        )
+        A = build_feature_matrix(df_block, config).to_numpy()
+        c_true = rng.standard_normal(A.shape[1])
+        delta_b = (A @ c_true).astype(np.float64)
+        df_block = df_block.with_columns(
+            pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64)
+        )
+        blocks.append(df_block)
+        segments.append(
+            Segment(
+                maneuver="steady",
+                heading=h_label,  # type: ignore[arg-type]
+                start_idx=offset,
+                end_idx=offset + n_per_heading,
+            )
+        )
+        offset += n_per_heading
+    df = pl.concat(blocks)
+    return df, segments
+
+
+def test_compensate_heading_specific_adds_tmi_compensated_column() -> None:
+    config = PipelineConfig(model_terms="a")
+    df, segments = _make_heading_specific_data(config)
+    cal_result = calibrate_per_heading(df, segments, config)
+    result_df = compensate_heading_specific(df, cal_result, config)
+    assert COL_TMI_COMPENSATED in result_df.columns
+
+
+def test_compensate_heading_specific_output_length_matches_input() -> None:
+    config = PipelineConfig(model_terms="a")
+    df, segments = _make_heading_specific_data(config)
+    cal_result = calibrate_per_heading(df, segments, config)
+    result_df = compensate_heading_specific(df, cal_result, config)
+    assert len(result_df) == len(df)
+
+
+def test_compensate_heading_specific_raises_on_n_terms_mismatch() -> None:
+    config_a = PipelineConfig(model_terms="a")
+    config_b = PipelineConfig(model_terms="b")
+    df, segments = _make_heading_specific_data(config_a)
+    cal_result = calibrate_per_heading(df, segments, config_a)
+    with pytest.raises(ValueError, match="n_terms"):
+        compensate_heading_specific(df, cal_result, config_b)
