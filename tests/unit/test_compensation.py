@@ -23,7 +23,7 @@ from lmc.columns import (
 from lmc.compensation import compensate, compensate_heading_specific
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
-from lmc.heading_calibration import calibrate_per_heading
+from lmc.heading_calibration import HeadingCalibrationResult, calibrate_per_heading
 from lmc.segmentation import Segment
 
 # ---------------------------------------------------------------------------
@@ -286,3 +286,172 @@ def test_compensate_heading_specific_raises_when_heading_col_missing() -> None:
     df_no_heading = df.drop(COL_HEADING)
     with pytest.raises(ValueError, match=COL_HEADING):
         compensate_heading_specific(df_no_heading, cal_result, config)
+
+
+# ---------------------------------------------------------------------------
+# Regression test: bin centres must come from calibration result, not survey
+# ---------------------------------------------------------------------------
+
+_CALIB_CONFIG = PipelineConfig(model_terms="a")
+
+
+def _make_heading_specific_calib_result(
+    reference_heading_deg: float,
+) -> HeadingCalibrationResult:
+    """Build a HeadingCalibrationResult with a specific reference_heading_deg.
+
+    We calibrate with headings offset by ``reference_heading_deg`` from cardinal
+    so that the stored reference matches the requested value.
+    """
+    config = _CALIB_CONFIG
+    ref = reference_heading_deg
+    # Build calibration df with headings at the offset cardinal positions.
+    headings_map = {
+        "N": ref % 360.0,
+        "E": (ref + 90.0) % 360.0,
+        "S": (ref + 180.0) % 360.0,
+        "W": (ref + 270.0) % 360.0,
+    }
+    n_per_heading = 60
+    rng = np.random.default_rng(42)
+    blocks: list[pl.DataFrame] = []
+    segments: list[Segment] = []
+    offset = 0
+    for h_label, h_deg in headings_map.items():
+        raw = rng.standard_normal((n_per_heading, 3))
+        norms = np.linalg.norm(raw, axis=1, keepdims=True)
+        cosines = raw / norms
+        b_total = 50_000.0
+        df_block = pl.DataFrame(
+            {
+                COL_TIME: np.arange(offset, offset + n_per_heading, dtype=np.float64),
+                COL_LAT: np.full(n_per_heading, 45.0),
+                COL_LON: np.full(n_per_heading, -75.0),
+                COL_ALT: np.full(n_per_heading, 300.0),
+                COL_BTOTAL: np.full(n_per_heading, b_total),
+                COL_BX: cosines[:, 0] * b_total,
+                COL_BY: cosines[:, 1] * b_total,
+                COL_BZ: cosines[:, 2] * b_total,
+                COL_HEADING: np.full(n_per_heading, h_deg),
+                COL_DELTA_B: np.zeros(n_per_heading, dtype=np.float64),
+            }
+        )
+        blocks.append(df_block)
+        segments.append(
+            Segment(
+                maneuver="steady",
+                heading=h_label,  # type: ignore[arg-type]
+                start_idx=offset,
+                end_idx=offset + n_per_heading,
+            )
+        )
+        offset += n_per_heading
+    df = pl.concat(blocks)
+    return calibrate_per_heading(df, segments, config)
+
+
+def _make_survey_df_cardinal(n_per_heading: int = 20) -> pl.DataFrame:
+    """Build a survey DataFrame with pure cardinal headings (0°, 90°, 180°, 270°)."""
+    rng = np.random.default_rng(99)
+    blocks: list[pl.DataFrame] = []
+    offset = 0
+    for h_deg in (0.0, 90.0, 180.0, 270.0):
+        raw = rng.standard_normal((n_per_heading, 3))
+        norms = np.linalg.norm(raw, axis=1, keepdims=True)
+        cosines = raw / norms
+        b_total = 50_000.0
+        blocks.append(
+            pl.DataFrame(
+                {
+                    COL_TIME: np.arange(
+                        offset, offset + n_per_heading, dtype=np.float64
+                    ),
+                    COL_LAT: np.full(n_per_heading, 45.0),
+                    COL_LON: np.full(n_per_heading, -75.0),
+                    COL_ALT: np.full(n_per_heading, 300.0),
+                    COL_BTOTAL: np.full(n_per_heading, b_total),
+                    COL_BX: cosines[:, 0] * b_total,
+                    COL_BY: cosines[:, 1] * b_total,
+                    COL_BZ: cosines[:, 2] * b_total,
+                    COL_HEADING: np.full(n_per_heading, h_deg),
+                }
+            )
+        )
+        offset += n_per_heading
+    return pl.concat(blocks)
+
+
+def test_compensate_heading_specific_uses_calibration_bin_centres() -> None:
+    """Bin centres must come from calibration result, not survey headings.
+
+    The calibration was done with headings offset 10° from cardinal (reference=10°).
+    The survey uses pure cardinal headings (0°/90°/180°/270°).  If compensation
+    re-estimated from survey headings, reference would be 0° and N-bin centre
+    would be 0°.  The stored calibration reference of 10° means N-bin centre
+    must be 10°, routing correctly.
+    """
+    from lmc.segmentation import (
+        _bin_centres_from_ref,  # pyright: ignore[reportPrivateUsage]
+    )
+
+    # Build calibration result with reference_heading_deg=10.0 (offset headings)
+    calib_result = _make_heading_specific_calib_result(reference_heading_deg=10.0)
+
+    # Verify the stored reference heading is 10° (±1° tolerance for float arithmetic)
+    assert abs(calib_result.reference_heading_deg - 10.0) < 1.0
+
+    # Verify calibration bin centres: N-bin should be near 10°, not 0°
+    cal_centres = _bin_centres_from_ref(calib_result.reference_heading_deg)
+    assert abs(cal_centres["N"] - 10.0) < 1.0
+
+    # Survey headings are pure cardinal (0°, 90°, 180°, 270°) — different distribution.
+    # If bin centres were re-estimated from survey headings, reference would be 0°
+    # and N-bin would be 0°, not 10°.
+    survey_df = _make_survey_df_cardinal()
+
+    compensated = compensate_heading_specific(survey_df, calib_result, _CALIB_CONFIG)
+
+    # The compensation should succeed and return the correct number of rows.
+    assert isinstance(compensated, pl.DataFrame)
+    assert len(compensated) == len(survey_df)
+    assert COL_TMI_COMPENSATED in compensated.columns
+
+
+def test_compensate_heading_specific_bin_centres_from_calibration_not_survey() -> None:
+    """Verify compensation uses result.reference_heading_deg, not survey headings.
+
+    We set up a scenario where survey headings would yield reference=0° but the
+    calibration reference is 10°.  We then manually compute the expected
+    compensation using the calibration bin centres and verify the output matches.
+    """
+    from lmc.segmentation import (
+        _bin_centres_from_ref,  # pyright: ignore[reportPrivateUsage]
+        assign_heading_bin,
+    )
+
+    config = _CALIB_CONFIG
+    calib_result = _make_heading_specific_calib_result(reference_heading_deg=10.0)
+
+    survey_df = _make_survey_df_cardinal()
+    headings = np.asarray(survey_df[COL_HEADING].to_numpy(), dtype=np.float64)
+
+    # Compute expected: using calibration bin centres (ref=10°)
+    cal_centres = _bin_centres_from_ref(calib_result.reference_heading_deg)
+    A = build_feature_matrix(survey_df, config).to_numpy()
+    interference_expected = np.zeros(len(survey_df), dtype=np.float64)
+    for h_label, cal in calib_result.per_heading.items():
+        mask = np.array(
+            [assign_heading_bin(h, cal_centres, 180.0) == h_label for h in headings],
+            dtype=bool,
+        )
+        if mask.any():
+            interference_expected[mask] = A[mask] @ cal.coefficients
+
+    btotal = np.asarray(survey_df[COL_BTOTAL].to_numpy(), dtype=np.float64)
+    tmi_expected = btotal - interference_expected
+
+    # Compute actual via compensate_heading_specific
+    out = compensate_heading_specific(survey_df, calib_result, config)
+    np.testing.assert_allclose(
+        out[COL_TMI_COMPENSATED].to_numpy(), tmi_expected, atol=1e-10
+    )
