@@ -2,6 +2,63 @@
 
 <!-- version list -->
 
+## v1.24.0 (2026-03-23)
+
+### Bug Fixes
+
+- Persist calibration reference heading in HeadingCalibrationResult
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+- Use calibration reference_heading_deg in compensate_heading_specific
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+- Warn when auto-detecting reference heading without heading column, add test for COL_HEADING path
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+### Chores
+
+- Remove implementation plan doc from repo
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+- Update uv.lock and add implementation plan doc
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+### Features
+
+- Persist resolved reference_heading_deg in HeadingCalibrationResult
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+### Refactoring
+
+- Export resolve_reference_heading from public API and strengthen segmentation tests
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+- Extract resolve_reference_heading and _bin_centres_from_ref helpers
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+- Make bin_centres_from_ref public, interpolate COL_HEADING in warning
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+### Testing
+
+- Remove weak regression test, keep genuine bin-centres regression
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+- Use boundary-straddling headings to make regression test genuine
+  ([#75](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/75),
+  [`24f694e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/24f694e496f6fd66c2eefa7a48c2c8b2204e54b9))
+
+
 ## v1.23.2 (2026-03-23)
 
 ### Bug Fixes
