@@ -2,6 +2,37 @@
 
 <!-- version list -->
 
+## v1.25.1 (2026-03-23)
+
+### Bug Fixes
+
+- Address code review feedback on causal derivative tests
+  ([#77](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/77),
+  [`9385cc5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9385cc5bc9e0294fe9f7fab4683d0350d5af3aa6))
+
+- Causal backward differences for C/D derivatives when use_cv=True
+  ([#77](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/77),
+  [`9385cc5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9385cc5bc9e0294fe9f7fab4683d0350d5af3aa6))
+
+- Resolve lint issues in causal derivative tests
+  ([#77](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/77),
+  [`9385cc5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9385cc5bc9e0294fe9f7fab4683d0350d5af3aa6))
+
+- Use causal backward differences for derivatives when use_cv=True
+  ([#77](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/77),
+  [`9385cc5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9385cc5bc9e0294fe9f7fab4683d0350d5af3aa6))
+
+### Chores
+
+- Remove implementation plan
+  ([#77](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/77),
+  [`9385cc5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9385cc5bc9e0294fe9f7fab4683d0350d5af3aa6))
+
+- Update uv.lock and add implementation plan
+  ([#77](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/77),
+  [`9385cc5`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/9385cc5bc9e0294fe9f7fab4683d0350d5af3aa6))
+
+
 ## v1.25.0 (2026-03-23)
 
 ### Bug Fixes
