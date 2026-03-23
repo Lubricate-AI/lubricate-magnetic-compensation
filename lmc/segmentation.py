@@ -262,7 +262,7 @@ def resolve_reference_heading(
     return _estimate_reference_heading(headings)
 
 
-def _bin_centres_from_ref(ref: float) -> dict[HeadingType, float]:
+def bin_centres_from_ref(ref: float) -> dict[HeadingType, float]:
     """Return the four cardinal bin centres from a pre-resolved reference heading.
 
     The centres are 90° apart.  The centre assigned the ``"N"`` label is
@@ -295,7 +295,7 @@ def resolve_bin_centres(
     (ascending-degree) order from there.
     """
     ref = resolve_reference_heading(config, headings)
-    return _bin_centres_from_ref(ref)
+    return bin_centres_from_ref(ref)
 
 
 def assign_heading_bin(

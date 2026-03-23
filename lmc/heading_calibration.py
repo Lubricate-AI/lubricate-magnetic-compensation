@@ -123,7 +123,7 @@ def calibrate_per_heading(
         # Explicit-label mode: df has no heading column.
         if config.reference_heading_deg is None:
             warnings.warn(
-                "COL_HEADING is absent and config.reference_heading_deg is None. "
+                f"{COL_HEADING!r} is absent and config.reference_heading_deg is None. "
                 "Cannot auto-detect the reference heading; defaulting to 0.0°. "
                 "Set config.reference_heading_deg explicitly for non-cardinal flights.",
                 UserWarning,

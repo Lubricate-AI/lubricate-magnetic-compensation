@@ -416,8 +416,8 @@ def test_compensate_heading_specific_bin_centres_from_calibration_not_survey() -
     centres (ref=10°) and verify that compensate_heading_specific matches.
     """
     from lmc.segmentation import (
-        _bin_centres_from_ref,  # pyright: ignore[reportPrivateUsage]
         assign_heading_bin,
+        bin_centres_from_ref,
     )
 
     # Pass reference_heading_deg=0.0 so that old buggy code (resolve_bin_centres)
@@ -429,7 +429,7 @@ def test_compensate_heading_specific_bin_centres_from_calibration_not_survey() -
     headings = np.asarray(survey_df[COL_HEADING].to_numpy(), dtype=np.float64)
 
     # Compute expected: using calibration bin centres (ref=10°)
-    cal_centres = _bin_centres_from_ref(calib_result.reference_heading_deg)
+    cal_centres = bin_centres_from_ref(calib_result.reference_heading_deg)
     A = build_feature_matrix(survey_df, config).to_numpy()
     interference_expected = np.zeros(len(survey_df), dtype=np.float64)
     for h_label, cal in calib_result.per_heading.items():

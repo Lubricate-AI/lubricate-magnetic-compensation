@@ -99,8 +99,8 @@ def compensate_heading_specific(
     """
     from lmc.segmentation import (
         HeadingType,
-        _bin_centres_from_ref,  # pyright: ignore[reportPrivateUsage]
         assign_heading_bin,
+        bin_centres_from_ref,
     )
 
     if COL_HEADING not in df.columns:
@@ -124,7 +124,7 @@ def compensate_heading_specific(
     # Use the reference heading stored during calibration so that bin centres are
     # identical to those used when fitting the per-heading models.  Re-estimating
     # from survey headings could silently misroute rows to the wrong coefficient set.
-    all_centres = _bin_centres_from_ref(result.reference_heading_deg)
+    all_centres = bin_centres_from_ref(result.reference_heading_deg)
     # Restrict to calibrated headings so every row routes to an available model.
     centres: dict[HeadingType, float] = {
         k: v for k, v in all_centres.items() if k in result.per_heading
