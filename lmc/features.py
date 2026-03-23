@@ -94,6 +94,9 @@ def _cosine_derivatives(
         diffs_x = np.diff(cos_x) / dt
         diffs_y = np.diff(cos_y) / dt
         diffs_z = np.diff(cos_z) / dt
+        # Row 0 has no prior sample, so pad with the first backward difference.
+        # This mirrors np.gradient's own left-edge convention (forward diff at row 0)
+        # and avoids NaNs, which simplifies downstream use (sklearn, etc.).
         return (
             np.asarray(np.concatenate([[diffs_x[0]], diffs_x]), dtype=np.float64),
             np.asarray(np.concatenate([[diffs_y[0]], diffs_y]), dtype=np.float64),
