@@ -72,12 +72,37 @@ def _cosine_derivatives(
     cos_y: npt.NDArray[np.float64],
     cos_z: npt.NDArray[np.float64],
     time: npt.NDArray[np.float64],
+    *,
+    causal: bool = False,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
-    """Compute time derivatives of direction cosines using np.gradient.
+    """Compute time derivatives of direction cosines.
+
+    When ``causal=False`` (default), uses ``np.gradient`` (central differences)
+    — each row may depend on its neighbours.
+
+    When ``causal=True``, uses backward differences so that row *i* depends only
+    on samples *i* and *i-1* (no look-ahead).  The first row is padded by
+    replicating the first backward-difference value so the output length matches
+    the input.  Use this path when ``config.use_cv=True`` to avoid train/test
+    leakage at ``TimeSeriesSplit`` fold boundaries.
 
     Uses explicit time coordinates to handle non-uniform sampling.
     Returns (dcos_x/dt, dcos_y/dt, dcos_z/dt).
     """
+    if causal:
+        dt = np.diff(time)  # shape (n-1,)
+        diffs_x = np.diff(cos_x) / dt
+        diffs_y = np.diff(cos_y) / dt
+        diffs_z = np.diff(cos_z) / dt
+        # Row 0 has no prior sample, so pad with the first backward difference.
+        # This mirrors np.gradient's own left-edge convention (forward diff at row 0)
+        # and avoids NaNs, which simplifies downstream use (sklearn, etc.).
+        return (
+            np.asarray(np.concatenate([[diffs_x[0]], diffs_x]), dtype=np.float64),
+            np.asarray(np.concatenate([[diffs_y[0]], diffs_y]), dtype=np.float64),
+            np.asarray(np.concatenate([[diffs_z[0]], diffs_z]), dtype=np.float64),
+        )
+
     dcos_x = np.asarray(np.gradient(cos_x, time), dtype=np.float64)
     dcos_y = np.asarray(np.gradient(cos_y, time), dtype=np.float64)
     dcos_z = np.asarray(np.gradient(cos_z, time), dtype=np.float64)
@@ -165,7 +190,9 @@ def build_feature_matrix(df: pl.DataFrame, config: PipelineConfig) -> pl.DataFra
             dcos_x, dcos_y, dcos_z = _imu_rates(df)
         else:
             time = np.asarray(df[COL_TIME].to_numpy(), dtype=np.float64)
-            dcos_x, dcos_y, dcos_z = _cosine_derivatives(cos_x, cos_y, cos_z, time)
+            dcos_x, dcos_y, dcos_z = _cosine_derivatives(
+                cos_x, cos_y, cos_z, time, causal=config.use_cv
+            )
 
         # Eddy current terms (9)
         data[COL_COS_X_DCOS_X] = cos_x * dcos_x

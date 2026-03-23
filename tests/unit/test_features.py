@@ -473,6 +473,157 @@ def test_imu_path_eddy_values() -> None:
         ), f"Mismatch in column {col!r}"
 
 
+# ---------------------------------------------------------------------------
+# Causal (use_cv=True) derivative path
+# ---------------------------------------------------------------------------
+
+_CONFIG_C_CV = PipelineConfig(model_terms="c", use_cv=True, use_ridge=True)
+_CONFIG_D_CV = PipelineConfig(model_terms="d", use_cv=True, use_ridge=True)
+
+
+def test_causal_derivatives_no_leakage_at_boundary() -> None:
+    """With use_cv=True, dcos at row i must not depend on row i+1.
+
+    cos_x = [0.6, 0.6, 0.8, 0.9] (non-linear so central ≠ backward diffs).
+    At row 2:
+      backward diff = (0.8 - 0.6) / (2.0 - 1.0) = 0.2
+      central  diff = (0.9 - 0.6) / (3.0 - 1.0) = 0.15
+    The test asserts 0.2 — i.e. the causal (backward) result.
+    """
+    fluxgate_mag = 10.0
+    cos_x_vals = [0.6, 0.6, 0.8, 0.9]
+    cos_y_vals = [math.sqrt(1.0 - cx**2) for cx in cos_x_vals]
+    df = pl.DataFrame(
+        {
+            COL_TIME: [0.0, 1.0, 2.0, 3.0],
+            COL_LAT: [45.0] * 4,
+            COL_LON: [-75.0] * 4,
+            COL_ALT: [300.0] * 4,
+            COL_BTOTAL: [54000.0] * 4,
+            COL_BX: [cx * fluxgate_mag for cx in cos_x_vals],
+            COL_BY: [cy * fluxgate_mag for cy in cos_y_vals],
+            COL_BZ: [0.0] * 4,
+        }
+    )
+
+    result = build_feature_matrix(df, _CONFIG_C_CV)
+
+    # Extract dcos_x at row 2 by dividing the product col by cos_x
+    actual_dcos_x_row2 = float(result[COL_COS_X_DCOS_X][2]) / cos_x_vals[2]
+    # backward diff = 0.2; central diff would give 0.15
+    expected_dcos_x_row2 = (cos_x_vals[2] - cos_x_vals[1]) / (2.0 - 1.0)
+    assert math.isclose(actual_dcos_x_row2, expected_dcos_x_row2, rel_tol=1e-9), (
+        f"Expected backward diff {expected_dcos_x_row2}, got {actual_dcos_x_row2}. "
+        "Central diff would give 0.15 — use_cv=True is not using causal diffs."
+    )
+
+
+def test_causal_derivatives_first_row_replicated() -> None:
+    """Row 0 gets the same derivative as row 1 (forward-padded).
+
+    cos_x = [0.6, 0.6, 0.8, 0.9]:
+      backward diff at row 1 = (0.6 - 0.6) / 1.0 = 0.0  → replicated to row 0
+      np.gradient at row 0   = forward diff = 0.0
+      np.gradient at row 1   = central diff = (0.8 - 0.6) / 2.0 = 0.1  ← differs!
+    So dcos[0] == dcos[1] holds only for the causal path.
+    """
+    fluxgate_mag = 10.0
+    cos_x_vals = [0.6, 0.6, 0.8, 0.9]
+    cos_y_vals = [math.sqrt(1.0 - cx**2) for cx in cos_x_vals]
+    df = pl.DataFrame(
+        {
+            COL_TIME: [0.0, 1.0, 2.0, 3.0],
+            COL_LAT: [45.0] * 4,
+            COL_LON: [-75.0] * 4,
+            COL_ALT: [300.0] * 4,
+            COL_BTOTAL: [54000.0] * 4,
+            COL_BX: [cx * fluxgate_mag for cx in cos_x_vals],
+            COL_BY: [cy * fluxgate_mag for cy in cos_y_vals],
+            COL_BZ: [0.0] * 4,
+        }
+    )
+
+    result = build_feature_matrix(df, _CONFIG_C_CV)
+
+    dcos_x_row0 = float(result[COL_COS_X_DCOS_X][0]) / cos_x_vals[0]
+    dcos_x_row1 = float(result[COL_COS_X_DCOS_X][1]) / cos_x_vals[1]
+    assert math.isclose(dcos_x_row0, dcos_x_row1, abs_tol=1e-12), (
+        f"Row 0 dcos_x ({dcos_x_row0}) should equal row 1 dcos_x ({dcos_x_row1}) "
+        "when use_cv=True (row 0 padded from first backward diff)."
+    )
+
+
+def test_non_cv_path_unchanged() -> None:
+    """use_cv=False uses central diffs; use_cv=True uses backward diffs — they differ.
+
+    Same non-linear data (cos_x = [0.6, 0.6, 0.8, 0.9]) under both configs.
+    At row 2: central gives 0.15, backward gives 0.2 — asserts they are distinct.
+    """
+    fluxgate_mag = 10.0
+    cos_x_vals = [0.6, 0.6, 0.8, 0.9]
+    cos_y_vals = [math.sqrt(1.0 - cx**2) for cx in cos_x_vals]
+    df = pl.DataFrame(
+        {
+            COL_TIME: [0.0, 1.0, 2.0, 3.0],
+            COL_LAT: [45.0] * 4,
+            COL_LON: [-75.0] * 4,
+            COL_ALT: [300.0] * 4,
+            COL_BTOTAL: [54000.0] * 4,
+            COL_BX: [cx * fluxgate_mag for cx in cos_x_vals],
+            COL_BY: [cy * fluxgate_mag for cy in cos_y_vals],
+            COL_BZ: [0.0] * 4,
+        }
+    )
+
+    result_central = build_feature_matrix(df, _CONFIG_C)  # use_cv=False
+    result_causal = build_feature_matrix(df, _CONFIG_C_CV)  # use_cv=True
+
+    dcos_central = float(result_central[COL_COS_X_DCOS_X][2]) / cos_x_vals[2]
+    dcos_causal = float(result_causal[COL_COS_X_DCOS_X][2]) / cos_x_vals[2]
+
+    # Central diff at row 2: (0.9 - 0.6) / 2.0 = 0.15
+    assert math.isclose(dcos_central, 0.15, rel_tol=1e-9), (
+        f"use_cv=False should use central diffs (expected 0.15, got {dcos_central})"
+    )
+    # Backward diff at row 2: (0.8 - 0.6) / 1.0 = 0.2
+    assert math.isclose(dcos_causal, 0.20, rel_tol=1e-9), (
+        f"use_cv=True should use backward diffs (expected 0.20, got {dcos_causal})"
+    )
+
+
+def test_causal_derivatives_d_model_raw_rate_columns() -> None:
+    """model_terms='d' with use_cv=True: raw DCOS_X/Y/Z columns also use causal diffs.
+
+    D-model adds COL_DCOS_X/Y/Z directly (not just as products). Verify that
+    COL_DCOS_X at row 2 equals the backward diff, not the central diff.
+    """
+    fluxgate_mag = 10.0
+    cos_x_vals = [0.6, 0.6, 0.8, 0.9]
+    cos_y_vals = [math.sqrt(1.0 - cx**2) for cx in cos_x_vals]
+    df = pl.DataFrame(
+        {
+            COL_TIME: [0.0, 1.0, 2.0, 3.0],
+            COL_LAT: [45.0] * 4,
+            COL_LON: [-75.0] * 4,
+            COL_ALT: [300.0] * 4,
+            COL_BTOTAL: [54000.0] * 4,
+            COL_BX: [cx * fluxgate_mag for cx in cos_x_vals],
+            COL_BY: [cy * fluxgate_mag for cy in cos_y_vals],
+            COL_BZ: [0.0] * 4,
+        }
+    )
+
+    result = build_feature_matrix(df, _CONFIG_D_CV)
+
+    # COL_DCOS_X is the raw derivative (not a product with cos_x)
+    actual_dcos_x_row2 = float(result[COL_DCOS_X][2])
+    expected = (cos_x_vals[2] - cos_x_vals[1]) / (2.0 - 1.0)  # backward = 0.2
+    assert math.isclose(actual_dcos_x_row2, expected, rel_tol=1e-9), (
+        f"D-model COL_DCOS_X at row 2: expected {expected}, got {actual_dcos_x_row2}. "
+        "use_cv=True should use causal diffs for raw DCOS columns too."
+    )
+
+
 def test_imu_path_raises_when_columns_absent() -> None:
     df = _make_df()  # no IMU columns
     with pytest.raises(ValueError, match="IMU columns are absent"):
