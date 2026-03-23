@@ -115,3 +115,53 @@ def test_condition_number_inf() -> None:
 def test_condition_number_nan() -> None:
     with pytest.raises(ValueError, match="'condition_number' must be finite"):
         _validate_coef_dict({**_VALID, "condition_number": math.nan})
+
+
+def test_singular_values_valid_passes() -> None:
+    """singular_values is optional; a valid non-empty list of numbers must pass."""
+    sv = [1.0, 2.0] + [float(i) for i in range(3, 19)]
+    _validate_coef_dict({**_VALID, "singular_values": sv})
+
+
+_SV_ERROR = "'singular_values' must be a list of finite numbers"
+
+
+def test_singular_values_not_a_list() -> None:
+    with pytest.raises(ValueError, match=_SV_ERROR):
+        _validate_coef_dict({**_VALID, "singular_values": "bad"})
+
+
+def test_singular_values_non_numeric() -> None:
+    data = {**_VALID, "singular_values": ["a"] * 18}
+    with pytest.raises(ValueError, match=_SV_ERROR):
+        _validate_coef_dict(data)
+
+
+def test_singular_values_bool_entries() -> None:
+    data = {**_VALID, "singular_values": [True] * 18}
+    with pytest.raises(ValueError, match=_SV_ERROR):
+        _validate_coef_dict(data)
+
+
+def test_singular_values_non_finite() -> None:
+    data = {**_VALID, "singular_values": [float("inf")] * 18}
+    with pytest.raises(ValueError, match=_SV_ERROR):
+        _validate_coef_dict(data)
+
+
+def test_singular_values_length_mismatch() -> None:
+    data = {**_VALID, "singular_values": [1.0, 2.0]}
+    with pytest.raises(
+        ValueError, match="'singular_values' has 2 entries but 'n_terms' is 18"
+    ):
+        _validate_coef_dict(data)
+
+
+def test_singular_values_empty_list() -> None:
+    with pytest.raises(ValueError, match=_SV_ERROR):
+        _validate_coef_dict({**_VALID, "singular_values": []})
+
+
+def test_missing_singular_values_passes() -> None:
+    """Backward compat: JSON without singular_values must still pass validation."""
+    _validate_coef_dict(_VALID)

@@ -188,6 +188,7 @@ def calibrate_cmd(
             "condition_number": result.condition_number,
             "selected_alpha": result.selected_alpha,
             "effective_dof": result.effective_dof,
+            "singular_values": result.singular_values.tolist(),
         }
         output.write_text(json.dumps(coef_data, indent=2))
 
@@ -284,6 +285,26 @@ def _validate_coef_dict(data: object) -> None:
         elif not math.isfinite(float(cond)):
             errors.append(f"'condition_number' must be finite, got {cond!r}.")
 
+    if "singular_values" in d:
+        sv = d["singular_values"]
+        if not isinstance(sv, list) or not sv:
+            errors.append("'singular_values' must be a list of finite numbers.")
+        else:
+            sv_list = cast(list[object], sv)
+            if not all(
+                (not isinstance(v, bool))
+                and isinstance(v, (int, float))
+                and math.isfinite(float(v))
+                for v in sv_list
+            ):
+                errors.append("'singular_values' must be a list of finite numbers.")
+            elif valid_n_terms is not None and len(sv_list) != valid_n_terms:
+                sv_len = len(sv_list)
+                errors.append(
+                    f"'singular_values' has {sv_len} entries but "
+                    f"'n_terms' is {valid_n_terms}."
+                )
+
     if errors:
         raise ValueError(
             "Coefficients JSON validation failed:\n"
@@ -323,7 +344,9 @@ def compensate_cmd(
             coefficients=coefs,
             residuals=np.empty(0, dtype=np.float64),
             condition_number=condition_number,
-            singular_values=np.ones(n_terms, dtype=np.float64),
+            singular_values=np.array(coef_data["singular_values"], dtype=np.float64)
+            if "singular_values" in coef_data
+            else np.full(n_terms, np.nan, dtype=np.float64),
             n_terms=n_terms,
         )
 
