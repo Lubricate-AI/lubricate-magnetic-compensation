@@ -2,6 +2,55 @@
 
 <!-- version list -->
 
+## v1.23.2 (2026-03-23)
+
+### Bug Fixes
+
+- Add pyright ignore comments to test sklearn .fit() calls
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Apply ruff formatting to test_calibration.py
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Correct alpha scaling for sklearn Lasso/ElasticNet convention
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Normalize alpha convention between ridge and sklearn regularizers
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Normalize elastic_net_alpha to unnormalized (ridge) convention
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Normalize lasso alpha to unnormalized (ridge) convention
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+### Chores
+
+- Add implementation plan and update uv.lock
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Remove implementation plan (saved to GitHub issue #66)
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+### Documentation
+
+- Document unnormalized alpha convention for lasso and elastic net fields
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+- Document unnormalized convention on ridge_alpha for consistency
+  ([#74](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/74),
+  [`45e5fc9`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/45e5fc9ce33c6d6de90a73b345768ce5613a907a))
+
+
 ## v1.23.1 (2026-03-22)
 
 ### Chores
