@@ -510,7 +510,8 @@ def test_causal_derivatives_no_leakage_at_boundary() -> None:
 
     # Extract dcos_x at row 2 by dividing the product col by cos_x
     actual_dcos_x_row2 = float(result[COL_COS_X_DCOS_X][2]) / cos_x_vals[2]
-    expected_dcos_x_row2 = (cos_x_vals[2] - cos_x_vals[1]) / (2.0 - 1.0)  # backward = 0.2
+    # backward diff = 0.2; central diff would give 0.15
+    expected_dcos_x_row2 = (cos_x_vals[2] - cos_x_vals[1]) / (2.0 - 1.0)
     assert math.isclose(actual_dcos_x_row2, expected_dcos_x_row2, rel_tol=1e-9), (
         f"Expected backward diff {expected_dcos_x_row2}, got {actual_dcos_x_row2}. "
         "Central diff would give 0.15 — use_cv=True is not using causal diffs."
@@ -518,7 +519,7 @@ def test_causal_derivatives_no_leakage_at_boundary() -> None:
 
 
 def test_causal_derivatives_first_row_replicated() -> None:
-    """Row 0 gets the same derivative as row 1 (forward-padded from first backward diff).
+    """Row 0 gets the same derivative as row 1 (forward-padded).
 
     cos_x = [0.6, 0.6, 0.8, 0.9]:
       backward diff at row 1 = (0.6 - 0.6) / 1.0 = 0.0  → replicated to row 0
