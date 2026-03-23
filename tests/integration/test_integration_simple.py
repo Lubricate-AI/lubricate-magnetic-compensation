@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import polars as pl
@@ -72,6 +73,8 @@ def test_calibrate_compensate_full_pipeline() -> None:
 
 def test_cli_calibrate_compensate(tmp_path: Path) -> None:
     """CLI round-trip: calibrate then compensate via Typer CliRunner."""
+    import json
+
     from typer.testing import CliRunner
 
     from lmc.cli.commands import app
@@ -103,6 +106,23 @@ def test_cli_calibrate_compensate(tmp_path: Path) -> None:
     )
     assert cal_result.exit_code == 0, cal_result.output
     assert coef_json.exists()
+
+    # Verify singular_values is written to JSON output.
+    coef_data: dict[str, object] = json.loads(coef_json.read_text())
+    assert "singular_values" in coef_data, (
+        "Expected 'singular_values' key in calibration JSON output"
+    )
+    sv = coef_data["singular_values"]
+    assert isinstance(sv, list), f"Expected list, got {type(sv).__name__}"
+    sv_list = cast(list[float], sv)
+    n_terms = coef_data["n_terms"]
+    assert isinstance(n_terms, int)
+    assert len(sv_list) == n_terms, (
+        f"Expected {n_terms} singular values, got {len(sv_list)}"
+    )
+    assert all(isinstance(v, float) for v in sv_list), (
+        "Expected all singular_values entries to be floats"
+    )
 
     # Write synthetic survey CSV (REQUIRED_COLUMNS only)
     survey_csv = tmp_path / "survey.csv"
