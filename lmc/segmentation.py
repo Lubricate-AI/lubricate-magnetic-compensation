@@ -248,6 +248,41 @@ def _estimate_reference_heading(headings: npt.NDArray[np.float64]) -> float:
     return float(ref)
 
 
+def resolve_reference_heading(
+    config: PipelineConfig,
+    headings: npt.NDArray[np.float64],
+) -> float:
+    """Resolve the reference heading used for heading-bin assignment.
+
+    Returns ``config.reference_heading_deg`` when it is set; otherwise
+    auto-estimates from ``headings`` via a folded circular mean.
+    """
+    if config.reference_heading_deg is not None:
+        return float(config.reference_heading_deg)
+    return _estimate_reference_heading(headings)
+
+
+def _bin_centres_from_ref(ref: float) -> dict[HeadingType, float]:
+    """Return the four cardinal bin centres from a pre-resolved reference heading.
+
+    The centres are 90° apart.  The centre assigned the ``"N"`` label is
+    whichever of the four has the smallest *angular distance* to 0°;
+    ``"E"``, ``"S"``, ``"W"`` follow in clockwise order.
+    """
+    raw_centres = [(ref + k * 90.0) % 360.0 for k in range(4)]
+
+    def _dist_to_north(angle: float) -> float:
+        d = angle % 360.0
+        return min(d, 360.0 - d)
+
+    ordered = sorted(raw_centres, key=_dist_to_north)
+    north = ordered[0]
+    rest = sorted(ordered[1:], key=lambda a: (a - north) % 360.0)
+    clockwise = [north] + rest
+
+    return dict(zip(_HEADING_ORDER, clockwise, strict=True))
+
+
 def resolve_bin_centres(
     config: PipelineConfig,
     headings: npt.NDArray[np.float64],
@@ -259,26 +294,8 @@ def resolve_bin_centres(
     ``min(d, 360 - d)``); ``"E"``, ``"S"``, ``"W"`` follow in clockwise
     (ascending-degree) order from there.
     """
-    if config.reference_heading_deg is not None:
-        ref = float(config.reference_heading_deg)
-    else:
-        ref = _estimate_reference_heading(headings)
-
-    raw_centres = [(ref + k * 90.0) % 360.0 for k in range(4)]
-
-    # Sort to find which centre is closest to 0°.
-    def _dist_to_north(angle: float) -> float:
-        d = angle % 360.0
-        return min(d, 360.0 - d)
-
-    ordered = sorted(raw_centres, key=_dist_to_north)
-    # ordered[0] is the "N" centre; the rest follow clockwise.
-    # Re-sort the remaining three in clockwise order (ascending degrees mod 360).
-    north = ordered[0]
-    rest = sorted(ordered[1:], key=lambda a: (a - north) % 360.0)
-    clockwise = [north] + rest
-
-    return dict(zip(_HEADING_ORDER, clockwise, strict=True))
+    ref = resolve_reference_heading(config, headings)
+    return _bin_centres_from_ref(ref)
 
 
 def assign_heading_bin(
