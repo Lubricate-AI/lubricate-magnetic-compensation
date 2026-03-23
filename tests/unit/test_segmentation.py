@@ -399,11 +399,9 @@ def test_resolve_reference_heading_estimates_when_config_is_none() -> None:
 
 
 def test_resolve_bin_centres_delegates_to_resolve_reference_heading() -> None:
-    """resolve_bin_centres output must equal calling resolve_reference_heading first."""
-    config = PipelineConfig(reference_heading_deg=None)
-    headings = np.array([0.0, 90.0, 180.0, 270.0])
-    ref = resolve_reference_heading(config, headings)
-    centres_direct = resolve_bin_centres(config, headings)
-    n_centre = centres_direct["N"]
-    d = min(n_centre % 360, 360 - n_centre % 360)
-    assert d == pytest.approx(min(ref % 360, 360 - ref % 360), abs=1e-10)  # pyright: ignore[reportUnknownMemberType]
+    """resolve_bin_centres centres must be consistent with resolve_reference_heading."""
+    config = PipelineConfig(reference_heading_deg=10.0)
+    headings = np.array([10.0, 100.0, 190.0, 280.0])
+    centres = resolve_bin_centres(config, headings)
+    # ref=10° → N=10°, E=100°, S=190°, W=280° (clockwise from nearest to 0°)
+    assert centres == pytest.approx({"N": 10.0, "E": 100.0, "S": 190.0, "W": 280.0})  # pyright: ignore[reportUnknownMemberType]
