@@ -54,7 +54,12 @@ from lmc.rls import (
     update_rls,
     update_rls_batch,
 )
-from lmc.segmentation import Segment, segment_fom
+from lmc.segmentation import (
+    Segment,
+    bin_centres_from_ref,
+    resolve_reference_heading,
+    segment_fom,
+)
 from lmc.validation import validate_dataframe
 from lmc.vif import compute_vif
 
@@ -108,6 +113,8 @@ __all__ = [
     "update_rls",
     "update_rls_batch",
     "Segment",
+    "bin_centres_from_ref",
+    "resolve_reference_heading",
     "compute_interference",
     "build_feature_matrix",
     "FomReport",

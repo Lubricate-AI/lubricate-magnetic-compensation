@@ -19,6 +19,8 @@ from lmc.columns import (
 from lmc.config import PipelineConfig
 from lmc.segmentation import (
     _estimate_reference_heading,  # pyright: ignore[reportPrivateUsage]
+    resolve_bin_centres,
+    resolve_reference_heading,
     segment_fom,
 )
 
@@ -374,3 +376,32 @@ def test_auto_detect_oblique_returns_16_segments() -> None:
     cfg = PipelineConfig()  # reference_heading_deg=None → auto-detect
     segs = segment_fom(df, cfg)
     assert len(segs) == 16
+
+
+# ---------------------------------------------------------------------------
+# resolve_reference_heading / resolve_bin_centres tests
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_reference_heading_uses_config_value_when_set() -> None:
+    config = PipelineConfig(reference_heading_deg=10.0)
+    headings = np.array([5.0, 95.0, 185.0, 275.0])
+    ref = resolve_reference_heading(config, headings)
+    assert ref == pytest.approx(10.0)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_resolve_reference_heading_estimates_when_config_is_none() -> None:
+    config = PipelineConfig(reference_heading_deg=None)
+    # Pure cardinal headings — folded circular mean of {0,0,0,0} mod 90 is 0°.
+    headings = np.array([0.0, 90.0, 180.0, 270.0])
+    ref = resolve_reference_heading(config, headings)
+    assert ref == pytest.approx(0.0, abs=1e-10)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_resolve_bin_centres_delegates_to_resolve_reference_heading() -> None:
+    """resolve_bin_centres centres must be consistent with resolve_reference_heading."""
+    config = PipelineConfig(reference_heading_deg=10.0)
+    headings = np.array([10.0, 100.0, 190.0, 280.0])
+    centres = resolve_bin_centres(config, headings)
+    # ref=10° → N=10°, E=100°, S=190°, W=280° (clockwise from nearest to 0°)
+    assert centres == pytest.approx({"N": 10.0, "E": 100.0, "S": 190.0, "W": 280.0})  # pyright: ignore[reportUnknownMemberType]

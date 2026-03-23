@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -10,9 +11,10 @@ import numpy.typing as npt
 import polars as pl
 
 from lmc.calibration import CalibrationResult, calibrate
+from lmc.columns import COL_HEADING
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
-from lmc.segmentation import HeadingType, Segment
+from lmc.segmentation import HeadingType, Segment, resolve_reference_heading
 from lmc.vif import compute_vif
 
 
@@ -29,10 +31,15 @@ class HeadingCalibrationResult:
         Variance Inflation Factors for the design matrix of each heading,
         shape ``(n_terms,)`` per heading.  High VIF (> 10) signals
         multicollinearity for that heading.
+    reference_heading_deg:
+        Reference heading in degrees resolved during calibration.  Stored
+        here so compensation can re-use the identical bin centres rather
+        than re-estimating from survey headings.
     """
 
     per_heading: dict[HeadingType, CalibrationResult]
     per_heading_vif: dict[HeadingType, npt.NDArray[np.float64]]
+    reference_heading_deg: float
 
 
 def calibrate_per_heading(
@@ -101,7 +108,32 @@ def calibrate_per_heading(
             except ValueError:
                 per_heading_vif[heading] = np.full(A.shape[1], np.nan, dtype=np.float64)
 
+    # Resolve the reference heading from the FOM calibration data so that
+    # compensation can reuse identical bin centres without re-estimating from
+    # survey headings.
+    if COL_HEADING in df.columns:
+        fom_heading_arrays = [
+            df.slice(seg.start_idx, seg.end_idx - seg.start_idx)[COL_HEADING].to_numpy()
+            for seg in segments
+        ]
+        fom_headings: npt.NDArray[np.float64] = np.concatenate(
+            fom_heading_arrays
+        ).astype(np.float64)
+    else:
+        # Explicit-label mode: df has no heading column.
+        if config.reference_heading_deg is None:
+            warnings.warn(
+                f"{COL_HEADING!r} is absent and config.reference_heading_deg is None. "
+                "Cannot auto-detect the reference heading; defaulting to 0.0°. "
+                "Set config.reference_heading_deg explicitly for non-cardinal flights.",
+                UserWarning,
+                stacklevel=2,
+            )
+        fom_headings = np.array([0.0, 90.0, 180.0, 270.0], dtype=np.float64)
+    resolved_ref = resolve_reference_heading(config, fom_headings)
+
     return HeadingCalibrationResult(
         per_heading=per_heading,
         per_heading_vif=per_heading_vif,
+        reference_heading_deg=resolved_ref,
     )
