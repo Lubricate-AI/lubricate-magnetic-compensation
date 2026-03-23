@@ -333,8 +333,18 @@ def _make_heading_specific_calib_result(
                 COL_BY: cosines[:, 1] * b_total,
                 COL_BZ: cosines[:, 2] * b_total,
                 COL_HEADING: np.full(n_per_heading, h_deg),
-                COL_DELTA_B: np.zeros(n_per_heading, dtype=np.float64),
+                COL_DELTA_B: np.zeros(n_per_heading, dtype=np.float64),  # placeholder
             }
+        )
+        # Use distinct non-zero "true" coefficients per heading so that the fitted
+        # per-heading coefficients are non-zero and differ across bins.  Without this,
+        # all coefficients would be zero (fitting delta_b=0) and misrouting rows
+        # between bins would produce identical compensation — hiding the bug.
+        c_true = rng.standard_normal(_N_TERMS[config.model_terms])
+        A_block = build_feature_matrix(df_block, config).to_numpy()
+        delta_b = (A_block @ c_true).astype(np.float64)
+        df_block = df_block.with_columns(
+            pl.Series(COL_DELTA_B, delta_b, dtype=pl.Float64)
         )
         blocks.append(df_block)
         segments.append(
@@ -351,11 +361,20 @@ def _make_heading_specific_calib_result(
 
 
 def _make_survey_df_cardinal(n_per_heading: int = 20) -> pl.DataFrame:
-    """Build a survey DataFrame with pure cardinal headings (0°, 90°, 180°, 270°)."""
+    """Build a survey DataFrame with boundary-straddling headings.
+
+    Headings are chosen so that they lie just inside the N/E/S/W bin boundaries
+    when the calibration reference is 10° (boundaries at 55°, 145°, 235°, 325°),
+    but just past those boundaries when the reference is 0° (boundaries at 45°,
+    135°, 225°, 315°).
+
+    New code (ref=10°): 50°→N, 140°→E, 230°→S, 320°→W
+    Old code (ref=0°):  50°→E, 140°→S, 230°→W, 320°→N
+    """
     rng = np.random.default_rng(99)
     blocks: list[pl.DataFrame] = []
     offset = 0
-    for h_deg in (0.0, 90.0, 180.0, 270.0):
+    for h_deg in (50.0, 140.0, 230.0, 320.0):
         raw = rng.standard_normal((n_per_heading, 3))
         norms = np.linalg.norm(raw, axis=1, keepdims=True)
         cosines = raw / norms
@@ -384,16 +403,26 @@ def _make_survey_df_cardinal(n_per_heading: int = 20) -> pl.DataFrame:
 def test_compensate_heading_specific_bin_centres_from_calibration_not_survey() -> None:
     """Verify compensation uses result.reference_heading_deg, not survey headings.
 
-    We set up a scenario where survey headings would yield reference=0° but the
-    calibration reference is 10°.  We then manually compute the expected
-    compensation using the calibration bin centres and verify the output matches.
+    Survey headings are at 50°/140°/230°/320° — each straddling the bin boundary
+    between the calibration reference (ref=10°, boundaries at 55°/145°/235°/325°)
+    and a reference of 0° (boundaries at 45°/135°/225°/315°).
+
+    We pass a config with reference_heading_deg=0.0 so that the old buggy code
+    (resolve_bin_centres(config, headings)) would use ref=0° and misroute rows:
+      Old code (ref=0°): 50°→E, 140°→S, 230°→W, 320°→N
+      New code (ref=10°): 50°→N, 140°→E, 230°→S, 320°→W
+
+    We then manually compute the expected compensation using the calibration bin
+    centres (ref=10°) and verify that compensate_heading_specific matches.
     """
     from lmc.segmentation import (
         _bin_centres_from_ref,  # pyright: ignore[reportPrivateUsage]
         assign_heading_bin,
     )
 
-    config = _CALIB_CONFIG
+    # Pass reference_heading_deg=0.0 so that old buggy code (resolve_bin_centres)
+    # would use ref=0° instead of the stored calibration reference (10°).
+    config = PipelineConfig(model_terms="a", reference_heading_deg=0.0)
     calib_result = _make_heading_specific_calib_result(reference_heading_deg=10.0)
 
     survey_df = _make_survey_df_cardinal()
