@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v1.25.0 (2026-03-23)
+
+### Bug Fixes
+
+- Address code review issues in singular_values validation
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+- Reject bool and non-finite entries in singular_values validation
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+### Chores
+
+- Update uv.lock to reflect 1.24.0
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+### Features
+
+- Persist singular_values in calibrate_cmd JSON output
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+- Persist singular_values in calibration coefficients JSON
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+- Read singular_values from JSON in compensate_cmd with NaN fallback
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+### Testing
+
+- Validate optional singular_values field in coef dict
+  ([#76](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/76),
+  [`fd99a63`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/fd99a63fd42b4602d142f0163de0babf40368df0))
+
+
 ## v1.24.0 (2026-03-23)
 
 ### Bug Fixes
