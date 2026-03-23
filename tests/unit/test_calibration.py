@@ -322,9 +322,13 @@ def test_calibration_result_existing_sites_unbroken() -> None:
 
 
 def test_lasso_recovers_reasonable() -> None:
-    """LASSO introduces bias but should return plausible, finite coefficients."""
+    """LASSO introduces bias but should return plausible, finite coefficients.
+
+    Uses a small lasso_alpha (unnormalized convention) so the scaled sklearn
+    alpha remains weak and near-exact recovery is expected.
+    """
     c_true = np.array([1.0, -2.0, 0.5])
-    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-3)
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-5)
     df, segments = _make_synthetic_data(c_true, config)
     result = calibrate(df, segments, config)
     assert result.coefficients.shape == (3,)
@@ -346,7 +350,7 @@ def test_lasso_populates_diagnostics() -> None:
 def test_lasso_zeroes_weak_terms_under_strong_regularization() -> None:
     """With high alpha, LASSO should zero out at least some coefficients."""
     c_true = np.array([1.0, -2.0, 0.5])
-    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=10.0)
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1000.0)
     df, segments = _make_synthetic_data(c_true, config)
     result = calibrate(df, segments, config)
     # At least one coefficient zeroed; effective_dof < n_terms
@@ -355,12 +359,16 @@ def test_lasso_zeroes_weak_terms_under_strong_regularization() -> None:
 
 
 def test_elastic_net_recovers_reasonable() -> None:
-    """ElasticNet should return plausible, finite coefficients."""
+    """ElasticNet should return plausible, finite coefficients.
+
+    Uses a small elastic_net_alpha (unnormalized convention) so the scaled
+    sklearn alpha remains weak and near-exact recovery is expected.
+    """
     c_true = np.array([1.0, -2.0, 0.5])
     config = PipelineConfig(
         model_terms="a",
         use_elastic_net=True,
-        elastic_net_alpha=1e-3,
+        elastic_net_alpha=1e-5,
         elastic_net_l1_ratio=0.5,
     )
     df, segments = _make_synthetic_data(c_true, config)
@@ -391,13 +399,137 @@ def test_elastic_net_l1_ratio_1_behaves_like_lasso() -> None:
     config = PipelineConfig(
         model_terms="a",
         use_elastic_net=True,
-        elastic_net_alpha=10.0,
+        elastic_net_alpha=1000.0,
         elastic_net_l1_ratio=1.0,
     )
     df, segments = _make_synthetic_data(c_true, config)
     result = calibrate(df, segments, config)
     assert result.effective_dof is not None
     assert result.effective_dof < result.n_terms
+
+
+# ---------------------------------------------------------------------------
+# Alpha convention tests: unnormalized (ridge) convention
+# ---------------------------------------------------------------------------
+
+
+def test_lasso_uses_n_samples_scaled_alpha_internally() -> None:
+    """Non-CV LASSO should pass lasso_alpha / (2*n_samples) to sklearn Lasso.
+
+    sklearn's Lasso minimizes (1/(2n))*||Aw-dB||² + alpha_sk*||w||₁, so to
+    achieve the unnormalized objective ||Aw-dB||² + alpha_user*||w||₁ we pass
+    alpha_sk = alpha_user / (2*n_samples).
+    """
+    c_true = np.array([1.0, -2.0, 0.5])
+    n_rows = 80
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1e-3)
+    df, segments = _make_synthetic_data(c_true, config, n_rows=n_rows)
+
+    result = calibrate(df, segments, config)
+
+    # Recompute manually with the expected scaled alpha
+    A = build_feature_matrix(df.slice(0, n_rows), config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import Lasso as _Lasso
+
+    expected = _Lasso(alpha=1e-3 / (2 * n_rows), fit_intercept=False, max_iter=10_000)
+    expected.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+    np.testing.assert_allclose(result.coefficients, expected.coef_, atol=1e-10)
+
+
+def test_lasso_selected_alpha_is_user_convention_not_scaled() -> None:
+    """CalibrationResult.selected_alpha should be the user-facing alpha, not scaled."""
+    c_true = np.array([1.0, -2.0, 0.5])
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=2e-4)
+    df, segments = _make_synthetic_data(c_true, config)
+    result = calibrate(df, segments, config)
+    # selected_alpha must reflect what the user passed, not the sklearn-scaled value
+    assert result.selected_alpha == pytest.approx(2e-4)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_lasso_cv_selected_alpha_in_unnormalized_convention() -> None:
+    """CV LASSO selected_alpha must be in unnormalized (ridge) convention.
+
+    LassoCV returns alpha in sklearn's (1/(2n))-normalized convention.
+    We must multiply by 2*n_samples to convert to the unnormalized convention.
+    """
+    df, segments = _make_multicollinear_df_for_cv()
+    n_rows = len(df)
+    config = PipelineConfig(model_terms="a", use_lasso=True, use_cv=True, cv_folds=5)
+    result = calibrate(df, segments, config)
+
+    # Reproduce what LassoCV returns in sklearn convention
+    A = build_feature_matrix(df, config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import LassoCV as _LassoCV
+    from sklearn.model_selection import TimeSeriesSplit as _TSS
+
+    cv = _TSS(n_splits=5)
+    model_cv = _LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
+    model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+
+    # selected_alpha = model_cv.alpha_ * 2 * n_rows (convert from sklearn convention)
+    expected_user_alpha = float(model_cv.alpha_) * 2 * n_rows
+    assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_elastic_net_uses_n_samples_scaled_alpha_internally() -> None:
+    """Non-CV ElasticNet should pass elastic_net_alpha / (2*n_samples) to sklearn.
+
+    sklearn's ElasticNet minimizes (1/(2n))*||Aw-dB||² + alpha_sk*(…), so to
+    achieve the unnormalized objective we pass alpha_sk = alpha_user / (2*n_samples).
+    """
+    c_true = np.array([1.0, -2.0, 0.5])
+    n_rows = 80
+    config = PipelineConfig(
+        model_terms="a",
+        use_elastic_net=True,
+        elastic_net_alpha=1e-3,
+        elastic_net_l1_ratio=0.5,
+    )
+    df, segments = _make_synthetic_data(c_true, config, n_rows=n_rows)
+
+    result = calibrate(df, segments, config)
+
+    A = build_feature_matrix(df.slice(0, n_rows), config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import ElasticNet as _ElasticNet
+
+    expected = _ElasticNet(
+        alpha=1e-3 / (2 * n_rows),
+        l1_ratio=0.5,
+        fit_intercept=False,
+        max_iter=10_000,
+    )
+    expected.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+    np.testing.assert_allclose(result.coefficients, expected.coef_, atol=1e-10)
+
+
+def test_elastic_net_cv_selected_alpha_in_unnormalized_convention() -> None:
+    """CV ElasticNet selected_alpha must be in unnormalized (ridge) convention."""
+    df, segments = _make_multicollinear_df_for_cv()
+    n_rows = len(df)
+    config = PipelineConfig(
+        model_terms="a", use_elastic_net=True, use_cv=True, cv_folds=5
+    )
+    result = calibrate(df, segments, config)
+
+    A = build_feature_matrix(df, config).to_numpy()
+    dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
+    from sklearn.linear_model import ElasticNetCV as _ENCV
+    from sklearn.model_selection import TimeSeriesSplit as _TSS
+
+    cv = _TSS(n_splits=5)
+    model_cv = _ENCV(
+        l1_ratio=config.elastic_net_l1_ratio,
+        cv=cv,
+        fit_intercept=False,
+        max_iter=10_000,
+    )
+    model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
+
+    expected_user_alpha = float(model_cv.alpha_) * 2 * n_rows
+    assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
 
 
 def _make_multicollinear_df(

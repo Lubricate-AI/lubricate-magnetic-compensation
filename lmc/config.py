@@ -61,7 +61,13 @@ class PipelineConfig(BaseModel):
     ridge_alpha: float = Field(
         default=1e-3,
         ge=0.0,
-        description="Ridge regularisation strength. Ignored when use_ridge is False.",
+        description=(
+            "Ridge regularisation strength in the unnormalized convention: "
+            "the user-visible alpha corresponds to the objective "
+            "||Aw - dB||² + alpha * ||w||², applied via the augmented-matrix method. "
+            "lasso_alpha and elastic_net_alpha share this same convention. "
+            "Ignored when use_ridge is False."
+        ),
     )
     use_lasso: bool = Field(
         default=False,
@@ -70,7 +76,14 @@ class PipelineConfig(BaseModel):
     lasso_alpha: float = Field(
         default=1e-3,
         ge=0.0,
-        description="LASSO regularisation strength. Ignored when use_lasso is False.",
+        description=(
+            "LASSO regularisation strength in the unnormalized convention: "
+            "the user-visible alpha corresponds to the objective "
+            "||Aw - dB||² + alpha * ||w||₁, matching ridge_alpha semantics. "
+            "Internally, calibrate() passes alpha / (2*n_samples) to sklearn's Lasso "
+            "to compensate for sklearn's (1/(2n))-normalized loss. "
+            "Ignored when use_lasso is False."
+        ),
     )
     use_elastic_net: bool = Field(
         default=False,
@@ -80,7 +93,13 @@ class PipelineConfig(BaseModel):
         default=1e-3,
         ge=0.0,
         description=(
-            "ElasticNet regularisation strength. Ignored when use_elastic_net is False."
+            "ElasticNet regularisation strength in the unnormalized convention: "
+            "the user-visible alpha corresponds to the objective "
+            "||Aw - dB||² + alpha * (l1_ratio*||w||₁ + (1-l1_ratio)*||w||²/2), "
+            "matching ridge_alpha semantics. "
+            "Internally, calibrate() passes alpha / (2*n_samples) to sklearn's "
+            "ElasticNet to compensate for sklearn's (1/(2n))-normalized loss. "
+            "Ignored when use_elastic_net is False."
         ),
     )
     elastic_net_l1_ratio: float = Field(
