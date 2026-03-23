@@ -118,8 +118,9 @@ def test_condition_number_nan() -> None:
 
 
 def test_singular_values_valid_passes() -> None:
-    """singular_values is optional; when present it must be a non-empty list of numbers."""
-    _validate_coef_dict({**_VALID, "singular_values": [1.0, 2.0] + [float(i) for i in range(3, 19)]})
+    """singular_values is optional; a valid non-empty list of numbers must pass."""
+    sv = [1.0, 2.0] + [float(i) for i in range(3, 19)]
+    _validate_coef_dict({**_VALID, "singular_values": sv})
 
 
 def test_singular_values_not_a_list() -> None:
@@ -135,8 +136,15 @@ def test_singular_values_non_numeric() -> None:
 
 def test_singular_values_length_mismatch() -> None:
     data = {**_VALID, "singular_values": [1.0, 2.0]}
-    with pytest.raises(ValueError, match="'singular_values' has 2 entries but 'n_terms' is 18"):
+    with pytest.raises(
+        ValueError, match="'singular_values' has 2 entries but 'n_terms' is 18"
+    ):
         _validate_coef_dict(data)
+
+
+def test_singular_values_empty_list() -> None:
+    with pytest.raises(ValueError, match="'singular_values' must be a list of numbers"):
+        _validate_coef_dict({**_VALID, "singular_values": []})
 
 
 def test_missing_singular_values_passes() -> None:

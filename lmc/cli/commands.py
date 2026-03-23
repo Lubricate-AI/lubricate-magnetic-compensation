@@ -286,12 +286,18 @@ def _validate_coef_dict(data: object) -> None:
 
     if "singular_values" in d:
         sv = d["singular_values"]
-        if not isinstance(sv, list) or not all(isinstance(v, (int, float)) for v in sv):
+        if not isinstance(sv, list) or not sv:
             errors.append("'singular_values' must be a list of numbers.")
-        elif valid_n_terms is not None and len(sv) != valid_n_terms:
-            errors.append(
-                f"'singular_values' has {len(sv)} entries but 'n_terms' is {valid_n_terms}."
-            )
+        else:
+            sv_list = cast(list[object], sv)
+            if not all(isinstance(v, (int, float)) for v in sv_list):
+                errors.append("'singular_values' must be a list of numbers.")
+            elif valid_n_terms is not None and len(sv_list) != valid_n_terms:
+                sv_len = len(sv_list)
+                errors.append(
+                    f"'singular_values' has {sv_len} entries but "
+                    f"'n_terms' is {valid_n_terms}."
+                )
 
     if errors:
         raise ValueError(
