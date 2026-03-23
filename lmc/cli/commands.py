@@ -284,6 +284,15 @@ def _validate_coef_dict(data: object) -> None:
         elif not math.isfinite(float(cond)):
             errors.append(f"'condition_number' must be finite, got {cond!r}.")
 
+    if "singular_values" in d:
+        sv = d["singular_values"]
+        if not isinstance(sv, list) or not all(isinstance(v, (int, float)) for v in sv):
+            errors.append("'singular_values' must be a list of numbers.")
+        elif valid_n_terms is not None and len(sv) != valid_n_terms:
+            errors.append(
+                f"'singular_values' has {len(sv)} entries but 'n_terms' is {valid_n_terms}."
+            )
+
     if errors:
         raise ValueError(
             "Coefficients JSON validation failed:\n"
