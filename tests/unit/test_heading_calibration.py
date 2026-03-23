@@ -169,3 +169,44 @@ def test_calibrate_per_heading_reference_heading_deg_is_finite_when_auto() -> No
     df, segments = _make_multi_heading_data(config)
     result = calibrate_per_heading(df, segments, config)
     assert np.isfinite(result.reference_heading_deg)
+
+
+def test_calibrate_per_heading_reference_heading_from_actual_headings() -> None:
+    """When df contains COL_HEADING, stored ref must reflect those heading values."""
+    from lmc.columns import COL_HEADING
+    from lmc.segmentation import resolve_reference_heading
+
+    config = PipelineConfig(model_terms="a", reference_heading_deg=None)
+    rng = np.random.default_rng(55)
+    n_per = 60
+    headings_map = {"N": 10.0, "E": 100.0, "S": 190.0, "W": 280.0}  # offset by 10°
+    blocks: list[pl.DataFrame] = []
+    segments: list[Segment] = []
+    offset = 0
+    for h_label, h_deg in headings_map.items():
+        block = _make_df_with_delta_b(n_per, rng, config)
+        # Add a heading column with the expected heading for this bin.
+        block = block.with_columns(
+            pl.Series(COL_HEADING, np.full(n_per, h_deg), dtype=pl.Float64)
+        )
+        blocks.append(block)
+        segments.append(
+            Segment(  # type: ignore[arg-type]
+                maneuver="steady",
+                heading=h_label,  # pyright: ignore[reportArgumentType]
+                start_idx=offset,
+                end_idx=offset + n_per,
+            )
+        )
+        offset += n_per
+    df = pl.concat(blocks)
+
+    result = calibrate_per_heading(df, segments, config)
+
+    # The stored reference heading should match what resolve_reference_heading
+    # would compute from the actual heading column values.
+    all_headings = np.array([h for h in headings_map.values() for _ in range(n_per)])
+    expected_ref = resolve_reference_heading(config, all_headings)
+    assert result.reference_heading_deg == pytest.approx(expected_ref, abs=1e-10)  # pyright: ignore[reportUnknownMemberType]
+    # And it should be near 10° (the offset used for all four legs).
+    assert result.reference_heading_deg == pytest.approx(10.0, abs=1.0)  # pyright: ignore[reportUnknownMemberType]

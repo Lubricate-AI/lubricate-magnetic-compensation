@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -119,8 +120,15 @@ def calibrate_per_heading(
             fom_heading_arrays
         ).astype(np.float64)
     else:
-        # Explicit-label mode: no heading column.
-        # Fall back to config value or cardinal default.
+        # Explicit-label mode: df has no heading column.
+        if config.reference_heading_deg is None:
+            warnings.warn(
+                "COL_HEADING is absent and config.reference_heading_deg is None. "
+                "Cannot auto-detect the reference heading; defaulting to 0.0°. "
+                "Set config.reference_heading_deg explicitly for non-cardinal flights.",
+                UserWarning,
+                stacklevel=2,
+            )
         fom_headings = np.array([0.0, 90.0, 180.0, 270.0], dtype=np.float64)
     resolved_ref = resolve_reference_heading(config, fom_headings)
 
