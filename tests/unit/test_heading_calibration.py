@@ -147,3 +147,25 @@ def test_calibrate_per_heading_multiple_segments_same_heading() -> None:
     assert set(result.per_heading_vif.keys()) == {"N"}
     # The model was trained on 120 rows pooled from both segments.
     assert result.per_heading["N"].residuals.shape[0] == 120
+
+
+def test_calibrate_per_heading_stores_reference_heading_deg_as_float() -> None:
+    df, segments = _make_multi_heading_data(_CONFIG_A)
+    result = calibrate_per_heading(df, segments, _CONFIG_A)
+    assert isinstance(result.reference_heading_deg, float)
+
+
+def test_calibrate_per_heading_reference_heading_deg_matches_config_when_set() -> None:
+    """When config.reference_heading_deg is set, the stored value must equal it."""
+    config = PipelineConfig(model_terms="a", reference_heading_deg=5.0)
+    df, segments = _make_multi_heading_data(config)
+    result = calibrate_per_heading(df, segments, config)
+    assert result.reference_heading_deg == pytest.approx(5.0)  # pyright: ignore[reportUnknownMemberType]
+
+
+def test_calibrate_per_heading_reference_heading_deg_is_finite_when_auto() -> None:
+    """When config.reference_heading_deg is None, stored value must be finite."""
+    config = PipelineConfig(model_terms="a", reference_heading_deg=None)
+    df, segments = _make_multi_heading_data(config)
+    result = calibrate_per_heading(df, segments, config)
+    assert np.isfinite(result.reference_heading_deg)
