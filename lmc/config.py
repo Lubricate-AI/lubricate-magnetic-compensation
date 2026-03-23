@@ -80,8 +80,8 @@ class PipelineConfig(BaseModel):
             "LASSO regularisation strength in the unnormalized convention: "
             "the user-visible alpha corresponds to the objective "
             "||Aw - dB||² + alpha * ||w||₁, matching ridge_alpha semantics. "
-            "Internally, calibrate() passes alpha * n_samples to sklearn's Lasso "
-            "to compensate for sklearn's (1/2n)-normalized loss. "
+            "Internally, calibrate() passes alpha / (2*n_samples) to sklearn's Lasso "
+            "to compensate for sklearn's (1/(2n))-normalized loss. "
             "Ignored when use_lasso is False."
         ),
     )
@@ -97,8 +97,8 @@ class PipelineConfig(BaseModel):
             "the user-visible alpha corresponds to the objective "
             "||Aw - dB||² + alpha * (l1_ratio*||w||₁ + (1-l1_ratio)*||w||²/2), "
             "matching ridge_alpha semantics. "
-            "Internally, calibrate() passes alpha * n_samples to sklearn's ElasticNet "
-            "to compensate for sklearn's (1/2n)-normalized loss. "
+            "Internally, calibrate() passes alpha / (2*n_samples) to sklearn's "
+            "ElasticNet to compensate for sklearn's (1/(2n))-normalized loss. "
             "Ignored when use_elastic_net is False."
         ),
     )

@@ -350,7 +350,7 @@ def test_lasso_populates_diagnostics() -> None:
 def test_lasso_zeroes_weak_terms_under_strong_regularization() -> None:
     """With high alpha, LASSO should zero out at least some coefficients."""
     c_true = np.array([1.0, -2.0, 0.5])
-    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=10.0)
+    config = PipelineConfig(model_terms="a", use_lasso=True, lasso_alpha=1000.0)
     df, segments = _make_synthetic_data(c_true, config)
     result = calibrate(df, segments, config)
     # At least one coefficient zeroed; effective_dof < n_terms
@@ -399,7 +399,7 @@ def test_elastic_net_l1_ratio_1_behaves_like_lasso() -> None:
     config = PipelineConfig(
         model_terms="a",
         use_elastic_net=True,
-        elastic_net_alpha=10.0,
+        elastic_net_alpha=1000.0,
         elastic_net_l1_ratio=1.0,
     )
     df, segments = _make_synthetic_data(c_true, config)
@@ -414,10 +414,11 @@ def test_elastic_net_l1_ratio_1_behaves_like_lasso() -> None:
 
 
 def test_lasso_uses_n_samples_scaled_alpha_internally() -> None:
-    """Non-CV LASSO should pass lasso_alpha * n_samples to sklearn Lasso.
+    """Non-CV LASSO should pass lasso_alpha / (2*n_samples) to sklearn Lasso.
 
-    sklearn's Lasso normalizes by n_samples internally, so to maintain
-    the unnormalized (ridge) alpha convention, we scale up before passing.
+    sklearn's Lasso minimizes (1/(2n))*||Aw-dB||² + alpha_sk*||w||₁, so to
+    achieve the unnormalized objective ||Aw-dB||² + alpha_user*||w||₁ we pass
+    alpha_sk = alpha_user / (2*n_samples).
     """
     c_true = np.array([1.0, -2.0, 0.5])
     n_rows = 80
@@ -431,7 +432,7 @@ def test_lasso_uses_n_samples_scaled_alpha_internally() -> None:
     dB = df[COL_DELTA_B].to_numpy().astype(np.float64)
     from sklearn.linear_model import Lasso as _Lasso
 
-    expected = _Lasso(alpha=1e-3 * n_rows, fit_intercept=False, max_iter=10_000)
+    expected = _Lasso(alpha=1e-3 / (2 * n_rows), fit_intercept=False, max_iter=10_000)
     expected.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
     np.testing.assert_allclose(result.coefficients, expected.coef_, atol=1e-10)
 
@@ -449,8 +450,8 @@ def test_lasso_selected_alpha_is_user_convention_not_scaled() -> None:
 def test_lasso_cv_selected_alpha_in_unnormalized_convention() -> None:
     """CV LASSO selected_alpha must be in unnormalized (ridge) convention.
 
-    LassoCV returns alpha in sklearn's convention (normalized by n_samples).
-    We must divide by n_samples to bring it into the same convention as ridge.
+    LassoCV returns alpha in sklearn's (1/(2n))-normalized convention.
+    We must multiply by 2*n_samples to convert to the unnormalized convention.
     """
     df, segments = _make_multicollinear_df_for_cv()
     n_rows = len(df)
@@ -467,15 +468,16 @@ def test_lasso_cv_selected_alpha_in_unnormalized_convention() -> None:
     model_cv = _LassoCV(cv=cv, fit_intercept=False, max_iter=10_000)
     model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
 
-    # After fix: selected_alpha = model_cv.alpha_ / n_rows
-    expected_user_alpha = float(model_cv.alpha_) / n_rows
+    # selected_alpha = model_cv.alpha_ * 2 * n_rows (convert from sklearn convention)
+    expected_user_alpha = float(model_cv.alpha_) * 2 * n_rows
     assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
 
 
 def test_elastic_net_uses_n_samples_scaled_alpha_internally() -> None:
-    """Non-CV ElasticNet should pass elastic_net_alpha * n_samples to sklearn.
+    """Non-CV ElasticNet should pass elastic_net_alpha / (2*n_samples) to sklearn.
 
-    sklearn's ElasticNet normalizes by n_samples; scaling up matches ridge convention.
+    sklearn's ElasticNet minimizes (1/(2n))*||Aw-dB||² + alpha_sk*(…), so to
+    achieve the unnormalized objective we pass alpha_sk = alpha_user / (2*n_samples).
     """
     c_true = np.array([1.0, -2.0, 0.5])
     n_rows = 80
@@ -494,7 +496,7 @@ def test_elastic_net_uses_n_samples_scaled_alpha_internally() -> None:
     from sklearn.linear_model import ElasticNet as _ElasticNet
 
     expected = _ElasticNet(
-        alpha=1e-3 * n_rows,
+        alpha=1e-3 / (2 * n_rows),
         l1_ratio=0.5,
         fit_intercept=False,
         max_iter=10_000,
@@ -526,7 +528,7 @@ def test_elastic_net_cv_selected_alpha_in_unnormalized_convention() -> None:
     )
     model_cv.fit(A, dB)  # pyright: ignore[reportUnknownMemberType]
 
-    expected_user_alpha = float(model_cv.alpha_) / n_rows
+    expected_user_alpha = float(model_cv.alpha_) * 2 * n_rows
     assert result.selected_alpha == pytest.approx(expected_user_alpha, rel=1e-5)  # pyright: ignore[reportUnknownMemberType]
 
 
