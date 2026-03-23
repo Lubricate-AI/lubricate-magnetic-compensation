@@ -339,7 +339,9 @@ def compensate_cmd(
             coefficients=coefs,
             residuals=np.empty(0, dtype=np.float64),
             condition_number=condition_number,
-            singular_values=np.ones(n_terms, dtype=np.float64),
+            singular_values=np.array(coef_data["singular_values"], dtype=np.float64)
+            if "singular_values" in coef_data
+            else np.full(n_terms, np.nan, dtype=np.float64),
             n_terms=n_terms,
         )
 

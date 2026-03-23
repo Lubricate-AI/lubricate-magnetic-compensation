@@ -142,3 +142,163 @@ def test_cli_calibrate_compensate(tmp_path: Path) -> None:
     )
     assert comp_result.exit_code == 0, comp_result.output
     assert out_csv.exists()
+
+
+def test_cli_compensate_singular_values_round_trip(tmp_path: Path) -> None:
+    """Round-trip: reconstructed singular_values should match values from JSON."""
+    import json
+
+    from typer.testing import CliRunner
+
+    from lmc.cli.commands import app
+
+    c_true = np.arange(1, 19, dtype=float) * 0.5
+
+    df_fom = make_fom_dataframe(c_true, noise_std=0.05)
+    fom_csv = tmp_path / "fom.csv"
+    df_fom.write_csv(fom_csv)
+
+    runner = CliRunner()
+    coef_json = tmp_path / "coefs.json"
+
+    cal_result = runner.invoke(
+        app,
+        [
+            "calibrate",
+            str(fom_csv),
+            "--output",
+            str(coef_json),
+            "--earth-field-method",
+            "steady_mean",
+            "--segment-label-col",
+            "segment",
+            "--model-terms",
+            "c",
+        ],
+    )
+    assert cal_result.exit_code == 0, cal_result.output
+
+    coef_data: dict[str, object] = json.loads(coef_json.read_text())
+    expected_sv = np.array(coef_data["singular_values"], dtype=np.float64)
+
+    # Import CalibrationResult to verify reconstructed singular_values
+    from unittest.mock import patch
+
+    from lmc import CalibrationResult
+
+    captured: list[CalibrationResult] = []
+    original_compensate = __import__("lmc", fromlist=["compensate"]).compensate
+
+    def capturing_compensate(
+        df: pl.DataFrame, result: CalibrationResult, config: PipelineConfig
+    ) -> pl.DataFrame:
+        captured.append(result)
+        return original_compensate(df, result, config)  # type: ignore[no-any-return]
+
+    survey_csv = tmp_path / "survey.csv"
+    df_fom.select(list(REQUIRED_COLUMNS)).write_csv(survey_csv)
+    out_csv = tmp_path / "out.csv"
+
+    with patch("lmc.cli.commands.compensate", side_effect=capturing_compensate):
+        comp_result = runner.invoke(
+            app,
+            [
+                "compensate",
+                str(survey_csv),
+                "--coefficients",
+                str(coef_json),
+                "--output",
+                str(out_csv),
+            ],
+        )
+
+    assert comp_result.exit_code == 0, comp_result.output
+    assert len(captured) == 1
+    reconstructed_sv = captured[0].singular_values
+
+    # Should NOT be all ones (the old placeholder)
+    assert not np.all(reconstructed_sv == 1.0), (
+        "singular_values should not be the old np.ones placeholder"
+    )
+    # Should match the values written to JSON by calibrate_cmd
+    np.testing.assert_array_almost_equal(reconstructed_sv, expected_sv)
+
+
+def test_cli_compensate_singular_values_nan_fallback(tmp_path: Path) -> None:
+    """NaN fallback: missing singular_values in JSON yields np.full(n_terms, nan)."""
+    import json
+    from unittest.mock import patch
+
+    from typer.testing import CliRunner
+
+    from lmc import CalibrationResult
+    from lmc.cli.commands import app
+
+    c_true = np.arange(1, 19, dtype=float) * 0.5
+
+    df_fom = make_fom_dataframe(c_true, noise_std=0.05)
+    fom_csv = tmp_path / "fom.csv"
+    df_fom.write_csv(fom_csv)
+
+    runner = CliRunner()
+    coef_json = tmp_path / "coefs.json"
+
+    cal_result = runner.invoke(
+        app,
+        [
+            "calibrate",
+            str(fom_csv),
+            "--output",
+            str(coef_json),
+            "--earth-field-method",
+            "steady_mean",
+            "--segment-label-col",
+            "segment",
+            "--model-terms",
+            "c",
+        ],
+    )
+    assert cal_result.exit_code == 0, cal_result.output
+
+    # Remove singular_values from JSON to simulate old-format file
+    coef_data: dict[str, object] = json.loads(coef_json.read_text())
+    n_terms = int(coef_data["n_terms"])  # type: ignore[arg-type]
+    coef_data.pop("singular_values", None)
+    coef_json.write_text(json.dumps(coef_data))
+
+    captured: list[CalibrationResult] = []
+    original_compensate = __import__("lmc", fromlist=["compensate"]).compensate
+
+    def capturing_compensate(
+        df: pl.DataFrame, result: CalibrationResult, config: PipelineConfig
+    ) -> pl.DataFrame:
+        captured.append(result)
+        return original_compensate(df, result, config)  # type: ignore[no-any-return]
+
+    survey_csv = tmp_path / "survey.csv"
+    df_fom.select(list(REQUIRED_COLUMNS)).write_csv(survey_csv)
+    out_csv = tmp_path / "out.csv"
+
+    with patch("lmc.cli.commands.compensate", side_effect=capturing_compensate):
+        comp_result = runner.invoke(
+            app,
+            [
+                "compensate",
+                str(survey_csv),
+                "--coefficients",
+                str(coef_json),
+                "--output",
+                str(out_csv),
+            ],
+        )
+
+    assert comp_result.exit_code == 0, comp_result.output
+    assert len(captured) == 1
+    reconstructed_sv = captured[0].singular_values
+
+    assert reconstructed_sv.shape == (n_terms,), (
+        f"Expected shape ({n_terms},), got {reconstructed_sv.shape}"
+    )
+    assert np.all(np.isnan(reconstructed_sv)), (
+        "Expected all NaN singular_values when JSON lacks 'singular_values' key"
+    )
