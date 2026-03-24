@@ -225,8 +225,8 @@ def predict_nn(
     """
     X = _extract_nn_features(df)
     X_scaled: npt.NDArray[np.float64] = result.input_scaler.transform(X)  # type: ignore[assignment]
-    preds = np.column_stack(  # pyright: ignore[reportUnknownArgumentType]
-        [m.predict(X_scaled) for m in result.estimators]  # pyright: ignore[reportUnknownMemberType]
+    preds = np.column_stack(
+        [m.predict(X_scaled) for m in result.estimators]  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
     )  # shape (n_samples, n_estimators)
     mean_pred = np.asarray(preds.mean(axis=1), dtype=np.float64)
     std_pred = np.asarray(preds.std(axis=1), dtype=np.float64)
