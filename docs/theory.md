@@ -629,7 +629,7 @@ differencing scheme (central vs. causal) are applied consistently.
 | Calibration data is limited (< 500 samples) | Prefer Tolles-Lawson — both NNs will overfit |
 | Physical interpretability required | Tolles-Lawson or inspect `result.tl_result.coefficients` |
 | Uncertainty quantification needed | PINN or supervised NN (`predict_pinn` / `predict_nn`) |
-| No position metadata (cannot use IGRF) | PINN with `steady_mean` baseline |
+| No reliable IGRF baseline (position metadata missing or unreliable) | PINN with `steady_mean` baseline (`lat`/`lon`/`alt` columns still required; zero-filled placeholders are acceptable) |
 | Comparing approaches systematically | Run all three; compare figure of merit on held-out data |
 
 ### Inspecting the Result
@@ -663,10 +663,13 @@ dominant interference and the additional complexity is not warranted.
 - **Uncertainty is heuristic.** The ensemble standard deviation reflects
   model disagreement across bootstrap resamples, not a calibrated
   confidence interval.
-- **`nn_feature_terms` should not exceed `tl_model_terms`.** Using c-model
-  features as NN inputs when the TL backbone is only an a-model would
-  introduce time-derivative columns that the backbone never saw, polluting
-  the residual signal the NN is trained on.
+- **`nn_feature_terms` and `tl_model_terms` should be compatible.**  It is
+  recommended that `nn_feature_terms` does not include terms absent from the
+  TL backbone (for example, using c-model features when the backbone is only
+  an a-model would introduce time-derivative columns the backbone never saw,
+  polluting the residual signal).  This relationship is not enforced at
+  runtime; the library will train without error, but compensation quality
+  may degrade.
 
 ---
 

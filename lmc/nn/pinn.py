@@ -1,9 +1,10 @@
 """Physics-informed neural network (PINN) for aeromagnetic compensation.
 
-Architecture: B_predicted = TL(A) + NN(TL_features), where
-- TL(A) is the Tolles-Lawson linear model (physics backbone)
+Architecture: δB_predicted = TL(A) + NN(TL_features), where
+- TL(A) is the Tolles-Lawson linear model (physics backbone) predicting δB
 - NN(TL_features) is a residual corrector trained on TL residuals
 - TL_features (direction cosines and products) form the NN input space
+- compensated TMI = B_total - δB_predicted
 
 The physics constraint is enforced via:
 1. NN input space = TL feature space (physically meaningful, not raw B)
@@ -183,7 +184,8 @@ def calibrate_pinn(
     Raises
     ------
     ValueError
-        If ``segments`` is empty, ``n_estimators < 1``, ``COL_DELTA_B`` is
+        If ``segments`` is empty, ``n_estimators < 1``,
+        ``physics_lambda`` is negative or non-finite, ``COL_DELTA_B`` is
         absent, any segment bounds are invalid, or all segments produce
         zero rows.
     """
@@ -192,6 +194,12 @@ def calibrate_pinn(
 
     if config.n_estimators < 1:
         raise ValueError(f"n_estimators must be >= 1, got {config.n_estimators}.")
+
+    if not (0.0 <= config.physics_lambda < float("inf")):
+        raise ValueError(
+            f"physics_lambda must be a finite non-negative number, "
+            f"got {config.physics_lambda}."
+        )
 
     if COL_DELTA_B not in df.columns:
         raise ValueError(

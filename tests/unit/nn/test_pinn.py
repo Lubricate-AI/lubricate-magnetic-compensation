@@ -171,6 +171,15 @@ def test_calibrate_pinn_zero_estimators_raises() -> None:
         calibrate_pinn(df, [seg], cfg)
 
 
+def test_calibrate_pinn_negative_physics_lambda_raises() -> None:
+    rng = np.random.default_rng(15)
+    df = _make_df(50, rng)
+    seg = Segment(start_idx=0, end_idx=50, maneuver="pitch", heading="N")
+    cfg = PINNConfig(physics_lambda=-1.0)
+    with pytest.raises(ValueError, match="physics_lambda"):
+        calibrate_pinn(df, [seg], cfg)
+
+
 def test_calibrate_pinn_pinn_residuals_smaller_than_tl() -> None:
     """PINN should reduce residuals compared to TL alone."""
     rng = np.random.default_rng(14)
