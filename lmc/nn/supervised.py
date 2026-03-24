@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -70,7 +69,7 @@ class NNCalibrationResult:
         Number of bootstrap estimators actually trained.
     """
 
-    estimators: list[Any]  # list[MLPRegressor]
+    estimators: list[MLPRegressor]
     input_scaler: StandardScaler
     residuals: npt.NDArray[np.float64]
     n_features: int
@@ -139,6 +138,11 @@ def calibrate_nn(
     """
     if not segments:
         raise ValueError("segments must be non-empty; cannot calibrate with no data.")
+
+    if config.n_estimators < 1:
+        raise ValueError(
+            f"n_estimators must be >= 1, got {config.n_estimators}."
+        )
 
     if COL_DELTA_B not in df.columns:
         raise ValueError(
@@ -216,8 +220,10 @@ def predict_nn(
     mean_prediction:
         Ensemble-mean predicted interference, shape ``(n_samples,)``.
     std_prediction:
-        Ensemble standard deviation (uncertainty proxy), shape ``(n_samples,)``.
-        A 95 % confidence interval is approximately ``mean ± 1.96 * std``.
+        Ensemble standard deviation (spread-based uncertainty proxy),
+        shape ``(n_samples,)``. Intervals like ``mean ± 1.96 * std``
+        can be used as heuristic uncertainty bands, but they are not
+        guaranteed 95 % confidence intervals.
     """
     X = _extract_nn_features(df)
     X_scaled: npt.NDArray[np.float64] = result.input_scaler.transform(X)  # type: ignore[assignment]
@@ -249,6 +255,11 @@ def compensate_nn(
         Input DataFrame with one additional column ``COL_TMI_COMPENSATED``
         containing ``B_total - mean_ensemble_prediction``.
     """
+    if COL_BTOTAL not in df.columns:
+        raise ValueError(
+            f"Column '{COL_BTOTAL}' is required for compensation but was not found. "
+            f"Available columns: {df.columns}"
+        )
     mean_pred, _ = predict_nn(df, result)
     b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
     tmi_comp = b_total - mean_pred

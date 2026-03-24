@@ -163,6 +163,15 @@ def test_calibrate_nn_missing_delta_b_raises() -> None:
         calibrate_nn(df, [seg], cfg)
 
 
+def test_calibrate_nn_zero_estimators_raises() -> None:
+    rng = np.random.default_rng(7)
+    df = _make_df(50, rng)
+    seg = Segment(start_idx=0, end_idx=50, maneuver="pitch", heading="N")
+    cfg = NNConfig(n_estimators=0)
+    with pytest.raises(ValueError, match="n_estimators"):
+        calibrate_nn(df, [seg], cfg)
+
+
 # ---------------------------------------------------------------------------
 # Task 6: predict_nn
 # ---------------------------------------------------------------------------
@@ -211,6 +220,18 @@ def test_compensate_nn_adds_column() -> None:
     compensated = compensate_nn(df, result)
     assert COL_TMI_COMPENSATED in compensated.columns
     assert len(compensated) == len(df)
+
+
+def test_compensate_nn_missing_btotal_raises() -> None:
+    rng = np.random.default_rng(8)
+    df = _make_df(100, rng)
+    seg = Segment(start_idx=0, end_idx=100, maneuver="pitch", heading="N")
+    cfg = NNConfig(n_estimators=3, max_iter=50)
+    result = calibrate_nn(df, [seg], cfg)
+
+    df_no_btotal = df.drop(COL_BTOTAL)
+    with pytest.raises(ValueError, match="B_total"):
+        compensate_nn(df_no_btotal, result)
 
 
 def test_compensate_nn_values_are_btotal_minus_prediction() -> None:
