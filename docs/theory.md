@@ -469,6 +469,207 @@ upper = mean_pred + 1.96 * std_pred
 
 ---
 
+## Physics-Informed Neural Network (PINN) Compensation
+
+!!! warning "Research module"
+    `lmc.nn.pinn` is an experimental research module. It is not yet
+    validated for production survey work. Use it to explore hybrid
+    physics–ML compensation approaches and compare against classical
+    Tolles-Lawson and supervised NN results.
+
+### Motivation
+
+The supervised neural network in `lmc.nn.supervised` makes no assumptions
+about the functional form of the interference: it learns the full mapping
+$(B_x, B_y, B_z) \to \delta B$ from data. This generality comes at a cost.
+Large training sets are required to avoid overfitting, and the learned model
+carries no physical structure — there is nothing preventing the network from
+fitting noise, or from extrapolating poorly to headings and attitudes not
+seen during calibration.
+
+The Tolles-Lawson model is the opposite extreme. It encodes decades of
+physical understanding of aircraft magnetic interference and calibrates well
+from a few hundred samples, but it cannot represent secondary nonlinear
+effects that the linear 18-term basis misses.
+
+The **PINN hybrid** takes the best of both:
+
+1. A **TL backbone** captures all known linear interference.  It is fast
+   to calibrate and provides a physically interpretable foundation.
+2. A small **residual NN** learns only what the TL model left behind.  It
+   operates in a much lower-dimensional target space (the TL residuals rather
+   than the raw interference), which reduces the data requirement and
+   regularises training.
+
+### Architecture
+
+Training proceeds in two phases.
+
+**Phase 1 — TL backbone calibration.**
+Standard Tolles-Lawson regression is run on the calibration segments using
+`lmc.calibration.calibrate`.  The fitted coefficients $\hat{\boldsymbol{\beta}}$
+and per-sample residuals
+
+$$
+\boldsymbol{\varepsilon}_\text{TL} = \mathbf{A}\,\hat{\boldsymbol{\beta}} - \delta B
+$$
+
+are computed and stored.
+
+**Phase 2 — Bootstrap-ensemble MLP on TL residuals.**
+A `StandardScaler` is fitted on the NN feature matrix (by default the
+9-column B-model feature matrix, selected by `nn_feature_terms`).  Then
+`PINNConfig.n_estimators` MLPRegressors are each trained on an independent
+bootstrap resample of the scaled features, with target
+$-\boldsymbol{\varepsilon}_\text{TL}$ (the TL shortfall).
+
+At inference time, the combined prediction is:
+
+$$
+\hat{\delta B} =
+    \underbrace{\mathbf{A}\,\hat{\boldsymbol{\beta}}}_{\text{TL backbone}} +
+    \underbrace{\bar{g}\!\left(\phi(\mathbf{x})\right)}_{\text{NN corrector}}
+$$
+
+where $\phi(\mathbf{x})$ is the scaled B-model feature vector and $\bar{g}$
+is the ensemble mean over all MLP members.  The ensemble standard deviation
+serves as a spread-based uncertainty proxy (identical in construction to the
+supervised NN ensemble).
+
+### Physics Constraints
+
+Two mechanisms enforce physical consistency.
+
+**Input space constraint.**
+The NN inputs are drawn from the TL feature matrix (direction cosines and
+their products), not the raw fluxgate channels $(B_x, B_y, B_z)$.  This
+means the NN operates in a feature space whose columns have direct physical
+interpretations — permanent, induced, and eddy-current basis functions.
+Nonlinear combinations of these columns can represent saturation, hysteresis,
+and higher-order coupling, while remaining anchored to the same geometric
+quantities that govern the TL model.
+
+**L2 regularization.**
+`PINNConfig.physics_lambda` maps to `MLPRegressor(alpha=...)` and penalises
+large NN weight norms.  A larger value forces the NN corrections to remain
+small, so the TL backbone carries most of the compensation load.  Setting
+`physics_lambda` very high recovers near-TL behaviour; setting it to zero
+allows the NN to correct freely.  The default `1e-3` is a light penalty
+appropriate for typical calibration data volumes.
+
+$$
+\mathcal{L} = \frac{1}{n}\sum_{i=1}^{n}
+    \bigl(\bar{g}(\phi(\mathbf{x}_i)) - (-\varepsilon_{\text{TL},i})\bigr)^2
+    + \lambda \|\boldsymbol{w}\|_2^2
+$$
+
+### Usage
+
+```python
+from lmc.nn import PINNConfig, calibrate_pinn, compensate_pinn, predict_pinn
+from lmc.segmentation import Segment
+
+# 1. Define calibration segments (same as for Tolles-Lawson)
+segments = [
+    Segment(start_idx=0, end_idx=500, maneuver="pitch", heading="N"),
+    Segment(start_idx=500, end_idx=1000, maneuver="roll", heading="E"),
+]
+
+# 2. Calibrate: TL backbone then residual NN
+config = PINNConfig(
+    tl_model_terms="c",     # 18-term TL backbone (default)
+    nn_feature_terms="b",   # 9-feature NN input space (default)
+    n_estimators=20,
+    physics_lambda=1e-3,
+)
+result = calibrate_pinn(df_calibration, segments, config)
+
+# 3a. Compensate survey data
+df_compensated = compensate_pinn(df_survey, result)
+
+# 3b. Or retrieve mean + uncertainty
+mean_pred, std_pred = predict_pinn(df_survey, result)
+lower = mean_pred - 1.96 * std_pred  # heuristic 95 % band
+upper = mean_pred + 1.96 * std_pred
+```
+
+### Choosing the TL Configuration
+
+By default, `PINNConfig.tl_model_terms` controls the TL backbone term set.
+For full control — including ridge regularization, causal derivatives for
+cross-validation splits, or IMU angular-rate substitution — pass a complete
+`PipelineConfig` via `tl_pipeline_config`:
+
+```python
+from lmc.config import PipelineConfig
+
+config = PINNConfig(
+    tl_pipeline_config=PipelineConfig(
+        model_terms="c",
+        use_ridge=True,
+        use_cv=True,        # causal derivatives, safe for time-series CV
+        use_imu_rates=True, # substitute IMU angular rates for ḋcos columns
+    ),
+    n_estimators=20,
+)
+```
+
+When `tl_pipeline_config` is set, its `model_terms` takes precedence over
+`tl_model_terms`.  The full config is stored on `PINNCalibrationResult`
+and used at prediction time to reconstruct the identical A-matrix — ensuring
+that the same derivative method (numerical vs. IMU-rate) and the same
+differencing scheme (central vs. causal) are applied consistently.
+
+### When to Use
+
+| Situation | Recommendation |
+|---|---|
+| Standard survey, sufficient calibration data | Tolles-Lawson (`calibrate` / `compensate`) |
+| TL residuals are large; nonlinear effects suspected | Try PINN (`calibrate_pinn`) |
+| Calibration data is limited (< 500 samples) | Prefer Tolles-Lawson — both NNs will overfit |
+| Physical interpretability required | Tolles-Lawson or inspect `result.tl_result.coefficients` |
+| Uncertainty quantification needed | PINN or supervised NN (`predict_pinn` / `predict_nn`) |
+| No position metadata (cannot use IGRF) | PINN with `steady_mean` baseline |
+| Comparing approaches systematically | Run all three; compare figure of merit on held-out data |
+
+### Inspecting the Result
+
+`PINNCalibrationResult` exposes diagnostic fields for assessing whether the
+PINN improved on TL alone:
+
+```python
+import numpy as np
+
+tl_rmse = float(np.sqrt(np.mean(result.tl_residuals ** 2)))
+pinn_rmse = float(np.sqrt(np.mean(result.pinn_residuals ** 2)))
+
+print(f"TL backbone RMSE:  {tl_rmse:.2f} nT")
+print(f"PINN combined RMSE: {pinn_rmse:.2f} nT")
+print(f"NN improvement:     {(1 - pinn_rmse / tl_rmse) * 100:.1f} %")
+```
+
+If the NN improvement is near zero, the TL model already captures the
+dominant interference and the additional complexity is not warranted.
+
+### Limitations
+
+- **Data hungry.** The residual NN still requires substantially more
+  calibration samples than the TL backbone alone to generalise well.
+  As a rough guide, use the same minimums as for `calibrate_nn`.
+- **TL backbone must be well-conditioned.** A poorly calibrated TL backbone
+  produces large, structured residuals that are difficult for the NN to
+  learn.  Inspect `result.tl_result.condition_number` and consider
+  `use_ridge=True` via `tl_pipeline_config` if conditioning is poor.
+- **Uncertainty is heuristic.** The ensemble standard deviation reflects
+  model disagreement across bootstrap resamples, not a calibrated
+  confidence interval.
+- **`nn_feature_terms` should not exceed `tl_model_terms`.** Using c-model
+  features as NN inputs when the TL backbone is only an a-model would
+  introduce time-derivative columns that the backbone never saw, polluting
+  the residual signal the NN is trained on.
+
+---
+
 ## References
 
 - Tolles, W. E., & Lawson, J. D. (1950). *Magnetic compensation of MAD equipped aircraft*.
