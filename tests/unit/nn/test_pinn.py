@@ -239,3 +239,19 @@ def test_compensate_pinn_values_are_btotal_minus_prediction() -> None:
     np.testing.assert_allclose(
         compensated[COL_TMI_COMPENSATED].to_numpy(), expected, rtol=1e-10
     )
+
+
+def test_pinn_public_exports() -> None:
+    from lmc.nn import (  # noqa: PLC0415
+        PINNCalibrationResult,
+        PINNConfig,
+        calibrate_pinn,
+        compensate_pinn,
+        predict_pinn,
+    )
+
+    assert callable(calibrate_pinn)
+    assert callable(predict_pinn)
+    assert callable(compensate_pinn)
+    assert PINNCalibrationResult is not None
+    assert PINNConfig is not None
