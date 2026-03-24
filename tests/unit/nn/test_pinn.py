@@ -114,3 +114,64 @@ def test_extract_pinn_features_shape_a_model() -> None:
     df = _make_df(50, rng)
     X = _extract_pinn_features(df, "a")
     assert X.shape == (50, 3), f"Expected (50, 3) for a-model, got {X.shape}"
+
+
+import pytest
+
+from lmc.nn.pinn import calibrate_pinn
+from lmc.segmentation import Segment
+
+
+def test_calibrate_pinn_returns_result() -> None:
+    rng = np.random.default_rng(10)
+    df = _make_df(200, rng)
+    seg = Segment(start_idx=0, end_idx=200, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=3, max_iter=50)
+    result = calibrate_pinn(df, [seg], cfg)
+    assert isinstance(result, PINNCalibrationResult)
+    assert result.n_estimators == 3
+    assert result.tl_residuals.shape == (200,)
+    assert result.pinn_residuals.shape == (200,)
+    assert result.n_nn_features == 9  # b-model default
+
+
+def test_calibrate_pinn_empty_segments_raises() -> None:
+    rng = np.random.default_rng(11)
+    df = _make_df(50, rng)
+    cfg = PINNConfig()
+    with pytest.raises(ValueError, match="segments must be non-empty"):
+        calibrate_pinn(df, [], cfg)
+
+
+def test_calibrate_pinn_missing_delta_b_raises() -> None:
+    from lmc.columns import COL_DELTA_B  # noqa: PLC0415
+    rng = np.random.default_rng(12)
+    df = _make_df(50, rng).drop(COL_DELTA_B)
+    seg = Segment(start_idx=0, end_idx=50, maneuver="pitch", heading="N")
+    cfg = PINNConfig()
+    with pytest.raises(ValueError, match="delta_B"):
+        calibrate_pinn(df, [seg], cfg)
+
+
+def test_calibrate_pinn_zero_estimators_raises() -> None:
+    rng = np.random.default_rng(13)
+    df = _make_df(50, rng)
+    seg = Segment(start_idx=0, end_idx=50, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=0)
+    with pytest.raises(ValueError, match="n_estimators"):
+        calibrate_pinn(df, [seg], cfg)
+
+
+def test_calibrate_pinn_pinn_residuals_smaller_than_tl() -> None:
+    """PINN should reduce residuals compared to TL alone."""
+    rng = np.random.default_rng(14)
+    df = _make_df(300, rng)
+    seg = Segment(start_idx=0, end_idx=300, maneuver="pitch", heading="N")
+    # Use tl_model_terms="a" (3 permanent terms) so TL leaves residuals for NN to correct
+    cfg = PINNConfig(n_estimators=5, max_iter=200, tl_model_terms="a")
+    result = calibrate_pinn(df, [seg], cfg)
+    tl_rmse = float(np.sqrt(np.mean(result.tl_residuals**2)))
+    pinn_rmse = float(np.sqrt(np.mean(result.pinn_residuals**2)))
+    assert pinn_rmse <= tl_rmse, (
+        f"PINN RMSE ({pinn_rmse:.3f}) should be <= TL RMSE ({tl_rmse:.3f})"
+    )

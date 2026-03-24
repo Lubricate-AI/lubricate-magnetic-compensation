@@ -21,9 +21,11 @@ import polars as pl
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
-from lmc.calibration import CalibrationResult
+from lmc.calibration import CalibrationResult, calibrate
+from lmc.columns import COL_DELTA_B
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
+from lmc.segmentation import Segment
 
 
 @dataclass(frozen=True)
@@ -124,3 +126,120 @@ def _extract_pinn_features(  # pyright: ignore[reportUnusedFunction]
     cfg = PipelineConfig(model_terms=nn_feature_terms)
     feature_df = build_feature_matrix(df, cfg)
     return np.asarray(feature_df.to_numpy(), dtype=np.float64)
+
+
+def calibrate_pinn(
+    df: pl.DataFrame,
+    segments: list[Segment],
+    config: PINNConfig,
+) -> PINNCalibrationResult:
+    """Calibrate PINN: TL backbone + bootstrap-ensemble residual NN.
+
+    Two-phase approach:
+    1. Fit TL coefficients on calibration segments using ``lmc.calibration.calibrate``.
+    2. Train a bootstrap-ensemble MLP on TL residuals, with NN inputs drawn
+       from the TL feature space (``config.nn_feature_terms``).
+
+    The physics constraint is enforced by:
+    - NN input space = TL feature matrix (direction cosines and products)
+    - L2 regularization ``config.physics_lambda`` penalises large NN corrections
+
+    Parameters
+    ----------
+    df:
+        Full calibration DataFrame.  Must contain all required magnetometer
+        columns plus ``COL_DELTA_B``.
+    segments:
+        Non-empty list of labeled flight segments.
+    config:
+        PINN hyperparameter configuration.
+
+    Returns
+    -------
+    PINNCalibrationResult
+
+    Raises
+    ------
+    ValueError
+        If ``segments`` is empty, ``n_estimators < 1``, ``COL_DELTA_B`` is
+        absent, any segment bounds are invalid, or all segments produce
+        zero rows.
+    """
+    if not segments:
+        raise ValueError("segments must be non-empty; cannot calibrate with no data.")
+
+    if config.n_estimators < 1:
+        raise ValueError(f"n_estimators must be >= 1, got {config.n_estimators}.")
+
+    if COL_DELTA_B not in df.columns:
+        raise ValueError(
+            f"Column '{COL_DELTA_B}' is required for calibration but was not found. "
+            f"Available columns: {df.columns}"
+        )
+
+    # --- Phase 1: Tolles-Lawson backbone calibration ---
+    tl_pipeline_cfg = PipelineConfig(model_terms=config.tl_model_terms)
+    tl_result = calibrate(df, segments, tl_pipeline_cfg)
+
+    # Build stacked segment data for NN training
+    x_blocks: list[npt.NDArray[np.float64]] = []
+    y_blocks: list[npt.NDArray[np.float64]] = []
+
+    for seg in segments:
+        if not (0 <= seg.start_idx < seg.end_idx <= len(df)):
+            raise ValueError(
+                f"Segment {seg!r} has invalid bounds for a DataFrame "
+                f"of length {len(df)}."
+            )
+        seg_df = df.slice(seg.start_idx, seg.end_idx - seg.start_idx)
+        x_blocks.append(_extract_pinn_features(seg_df, config.nn_feature_terms))
+        y_blocks.append(np.asarray(seg_df[COL_DELTA_B].to_numpy(), dtype=np.float64))
+
+    X: npt.NDArray[np.float64] = np.vstack(x_blocks)
+    delta_b_all: npt.NDArray[np.float64] = np.concatenate(y_blocks)
+
+    if X.shape[0] == 0:
+        raise ValueError("All segments produced empty slices; cannot calibrate.")
+
+    # tl_result.residuals = A @ coef - delta_B
+    # NN target: learn the negative of TL residuals (the TL shortfall)
+    tl_residuals: npt.NDArray[np.float64] = tl_result.residuals
+    nn_targets: npt.NDArray[np.float64] = -tl_residuals
+
+    # --- Phase 2: Bootstrap-ensemble MLP on TL residuals ---
+    scaler = StandardScaler()
+    X_scaled: npt.NDArray[np.float64] = scaler.fit_transform(X)  # type: ignore[assignment]
+
+    rng = np.random.default_rng(config.random_state)
+    n: int = X_scaled.shape[0]  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]
+    estimators: list[MLPRegressor] = []
+
+    for i in range(config.n_estimators):
+        idx = rng.integers(0, n, size=n)  # pyright: ignore[reportUnknownVariableType, reportUnknownArgumentType]
+        mlp = MLPRegressor(
+            hidden_layer_sizes=config.hidden_layer_sizes,
+            activation=config.activation,
+            max_iter=config.max_iter,
+            alpha=config.physics_lambda,  # L2 physics constraint
+            random_state=config.random_state + i,
+        )
+        mlp.fit(X_scaled[idx], nn_targets[idx])  # pyright: ignore[reportUnknownMemberType]
+        estimators.append(mlp)
+
+    # Compute combined PINN residuals on training data
+    _member_preds = [m.predict(X_scaled) for m in estimators]  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    nn_mean_pred = np.column_stack(_member_preds).mean(axis=1)  # pyright: ignore[reportUnknownArgumentType]
+    # tl_pred = delta_b_all + tl_residuals  (since tl_residuals = A@coef - delta_B)
+    tl_pred = delta_b_all + tl_residuals
+    pinn_pred = tl_pred + nn_mean_pred
+    pinn_residuals = np.asarray(pinn_pred - delta_b_all, dtype=np.float64)
+
+    return PINNCalibrationResult(
+        tl_result=tl_result,
+        estimators=estimators,
+        input_scaler=scaler,
+        tl_residuals=tl_residuals,
+        pinn_residuals=pinn_residuals,
+        n_nn_features=X.shape[1],
+        n_estimators=config.n_estimators,
+    )
