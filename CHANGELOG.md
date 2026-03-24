@@ -2,6 +2,93 @@
 
 <!-- version list -->
 
+## v1.27.0 (2026-03-24)
+
+### Bug Fixes
+
+- Address code review comments on pinn module and theory docs
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Store full PipelineConfig on PINNCalibrationResult for correct prediction
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Validate TL term count in predict_pinn to catch config mismatch
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+### Chores
+
+- Update uv.lock to reflect current package version
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+### Documentation
+
+- Add PINN compensation section to theory.md
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+### Features
+
+- Add _extract_pinn_features for TL-space NN input
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Add PINNCalibrationResult dataclass
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Add PINNConfig dataclass for physics-informed NN
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Add tl_pipeline_config to PINNConfig for full TL backbone control
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Export PINN module from lmc.nn
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Implement calibrate_pinn with TL backbone and NN residual corrector
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Implement compensate_pinn
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Implement predict_pinn with TL + NN ensemble prediction
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Physics-informed neural network (PINN) compensation module (lmc.nn.pinn)
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+### Refactoring
+
+- Remove stale pyright suppression and redundant import
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Store term settings in PINNCalibrationResult, drop config from predict/compensate
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+### Testing
+
+- Fix import ordering and line length in test_pinn.py
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+- Fix import ordering in test_pinn.py (E402)
+  ([#82](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/82),
+  [`3d5b1e2`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/3d5b1e292f263dc2fc592740263cf14deb41884f))
+
+
 ## v1.26.0 (2026-03-24)
 
 ### Bug Fixes
