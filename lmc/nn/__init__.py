@@ -1,5 +1,12 @@
 """Neural network modules for aeromagnetic compensation (optional, research-grade)."""
 
+from lmc.nn.pinn import (
+    PINNCalibrationResult,
+    PINNConfig,
+    calibrate_pinn,
+    compensate_pinn,
+    predict_pinn,
+)
 from lmc.nn.supervised import (
     NNCalibrationResult,
     NNConfig,
@@ -14,4 +21,9 @@ __all__ = [
     "calibrate_nn",
     "predict_nn",
     "compensate_nn",
+    "PINNConfig",
+    "PINNCalibrationResult",
+    "calibrate_pinn",
+    "predict_pinn",
+    "compensate_pinn",
 ]
