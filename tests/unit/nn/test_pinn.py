@@ -58,3 +58,59 @@ def test_pinn_calibration_result_stores_fields() -> None:
     assert len(result.estimators) == 1
     assert result.tl_residuals.shape == (2,)
     assert result.pinn_residuals.shape == (2,)
+
+
+import polars as pl
+
+from lmc.columns import (
+    COL_ALT,
+    COL_BTOTAL,
+    COL_BX,
+    COL_BY,
+    COL_BZ,
+    COL_DELTA_B,
+    COL_LAT,
+    COL_LON,
+    COL_TIME,
+)
+from lmc.nn.pinn import _extract_pinn_features  # pyright: ignore[reportPrivateUsage]
+
+
+def _make_df(n: int, rng: np.random.Generator) -> pl.DataFrame:
+    """Synthetic calibration DataFrame with physically valid B vectors."""
+    raw = rng.standard_normal((n, 3))
+    norms = np.linalg.norm(raw, axis=1, keepdims=True)
+    cos = raw / norms
+    b_total = 50_000.0
+    bx = cos[:, 0] * b_total
+    by = cos[:, 1] * b_total
+    bz = cos[:, 2] * b_total
+    delta_b = 200.0 * cos[:, 0] + 150.0 * cos[:, 1] ** 2 - 80.0 * cos[:, 2]
+    return pl.DataFrame(
+        {
+            COL_TIME: np.arange(n, dtype=np.float64),
+            COL_LAT: np.zeros(n),
+            COL_LON: np.zeros(n),
+            COL_ALT: np.full(n, 300.0),
+            COL_BTOTAL: np.full(n, b_total),
+            COL_BX: bx,
+            COL_BY: by,
+            COL_BZ: bz,
+            COL_DELTA_B: delta_b,
+        }
+    )
+
+
+def test_extract_pinn_features_shape_b_model() -> None:
+    rng = np.random.default_rng(0)
+    df = _make_df(100, rng)
+    X = _extract_pinn_features(df, "b")
+    assert X.shape == (100, 9), f"Expected (100, 9) for b-model, got {X.shape}"
+    assert X.dtype == np.float64
+
+
+def test_extract_pinn_features_shape_a_model() -> None:
+    rng = np.random.default_rng(1)
+    df = _make_df(50, rng)
+    X = _extract_pinn_features(df, "a")
+    assert X.shape == (50, 3), f"Expected (50, 3) for a-model, got {X.shape}"

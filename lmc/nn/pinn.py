@@ -17,10 +17,13 @@ from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
+import polars as pl
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 from lmc.calibration import CalibrationResult
+from lmc.config import PipelineConfig
+from lmc.features import build_feature_matrix
 
 
 @dataclass(frozen=True)
@@ -94,3 +97,30 @@ class PINNCalibrationResult:
     pinn_residuals: npt.NDArray[np.float64]
     n_nn_features: int
     n_estimators: int
+
+
+def _extract_pinn_features(
+    df: pl.DataFrame,
+    nn_feature_terms: Literal["a", "b", "c", "d"],
+) -> npt.NDArray[np.float64]:
+    """Extract TL feature matrix for NN input.
+
+    Uses ``build_feature_matrix`` with a minimal PipelineConfig to produce
+    the direction-cosine feature space used as NN inputs.
+
+    Parameters
+    ----------
+    df:
+        Input DataFrame containing at minimum the columns required by
+        ``build_feature_matrix`` (see ``lmc.validation.REQUIRED_COLUMNS``).
+    nn_feature_terms:
+        TL term set for the NN feature matrix.  ``'b'`` is recommended
+        (9 features): permanent + induced terms, no time derivatives.
+
+    Returns
+    -------
+    numpy array of shape ``(n_samples, n_features)`` with dtype float64.
+    """
+    cfg = PipelineConfig(model_terms=nn_feature_terms)
+    feature_df = build_feature_matrix(df, cfg)
+    return np.asarray(feature_df.to_numpy(), dtype=np.float64)
