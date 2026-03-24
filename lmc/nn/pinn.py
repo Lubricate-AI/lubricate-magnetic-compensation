@@ -22,7 +22,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 from lmc.calibration import CalibrationResult, calibrate
-from lmc.columns import COL_DELTA_B
+from lmc.columns import COL_BTOTAL, COL_DELTA_B, COL_TMI_COMPENSATED
 from lmc.config import PipelineConfig
 from lmc.features import build_feature_matrix
 from lmc.segmentation import Segment
@@ -289,3 +289,42 @@ def predict_pinn(
     nn_std = np.asarray(nn_preds.std(axis=1), dtype=np.float64)
 
     return tl_pred + nn_mean, nn_std
+
+
+def compensate_pinn(
+    df: pl.DataFrame,
+    result: PINNCalibrationResult,
+    config: PINNConfig,
+) -> pl.DataFrame:
+    """Subtract PINN-predicted interference from survey TMI.
+
+    Parameters
+    ----------
+    df:
+        Survey DataFrame containing ``COL_BTOTAL`` and all columns
+        required by ``predict_pinn``.
+    result:
+        Fitted ``PINNCalibrationResult`` from ``calibrate_pinn()``.
+    config:
+        PINN config with the same term settings used during calibration.
+
+    Returns
+    -------
+    pl.DataFrame
+        Input DataFrame with one additional column ``COL_TMI_COMPENSATED``
+        containing ``B_total - (TL_pred + NN_mean_pred)``.
+
+    Raises
+    ------
+    ValueError
+        If ``COL_BTOTAL`` is absent from ``df``.
+    """
+    if COL_BTOTAL not in df.columns:
+        raise ValueError(
+            f"Column '{COL_BTOTAL}' is required for compensation but was not found. "
+            f"Available columns: {df.columns}"
+        )
+    mean_pred, _ = predict_pinn(df, result, config)
+    b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
+    tmi_comp = b_total - mean_pred
+    return df.with_columns(pl.Series(COL_TMI_COMPENSATED, tmi_comp, dtype=pl.Float64))

@@ -20,12 +20,14 @@ from lmc.columns import (
     COL_LAT,
     COL_LON,
     COL_TIME,
+    COL_TMI_COMPENSATED,
 )
 from lmc.nn.pinn import (
     PINNCalibrationResult,
     PINNConfig,
     _extract_pinn_features,  # pyright: ignore[reportPrivateUsage]
     calibrate_pinn,
+    compensate_pinn,
     predict_pinn,
 )
 from lmc.segmentation import Segment
@@ -198,3 +200,42 @@ def test_predict_pinn_uncertainty_is_nontrivial() -> None:
 
     _, std_pred = predict_pinn(df, result, cfg)
     assert np.mean(std_pred > 0.0) > 0.9
+
+
+def test_compensate_pinn_adds_column() -> None:
+    rng = np.random.default_rng(30)
+    df = _make_df(200, rng)
+    seg = Segment(start_idx=0, end_idx=200, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=3, max_iter=50)
+    result = calibrate_pinn(df, [seg], cfg)
+
+    compensated = compensate_pinn(df, result, cfg)
+    assert COL_TMI_COMPENSATED in compensated.columns
+    assert len(compensated) == len(df)
+
+
+def test_compensate_pinn_missing_btotal_raises() -> None:
+    rng = np.random.default_rng(31)
+    df = _make_df(100, rng)
+    seg = Segment(start_idx=0, end_idx=100, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=3, max_iter=50)
+    result = calibrate_pinn(df, [seg], cfg)
+
+    with pytest.raises(ValueError, match="B_total"):
+        compensate_pinn(df.drop(COL_BTOTAL), result, cfg)
+
+
+def test_compensate_pinn_values_are_btotal_minus_prediction() -> None:
+    rng = np.random.default_rng(32)
+    df = _make_df(100, rng)
+    seg = Segment(start_idx=0, end_idx=100, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=3, max_iter=50)
+    result = calibrate_pinn(df, [seg], cfg)
+
+    compensated = compensate_pinn(df, result, cfg)
+    mean_pred, _ = predict_pinn(df, result, cfg)
+    b_total = df[COL_BTOTAL].to_numpy()
+    expected = b_total - mean_pred
+    np.testing.assert_allclose(
+        compensated[COL_TMI_COMPENSATED].to_numpy(), expected, rtol=1e-10
+    )
