@@ -140,9 +140,7 @@ def calibrate_nn(
         raise ValueError("segments must be non-empty; cannot calibrate with no data.")
 
     if config.n_estimators < 1:
-        raise ValueError(
-            f"n_estimators must be >= 1, got {config.n_estimators}."
-        )
+        raise ValueError(f"n_estimators must be >= 1, got {config.n_estimators}.")
 
     if COL_DELTA_B not in df.columns:
         raise ValueError(
