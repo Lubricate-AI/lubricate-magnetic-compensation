@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 import polars as pl
+import pytest
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
@@ -24,7 +25,9 @@ from lmc.nn.pinn import (
     PINNCalibrationResult,
     PINNConfig,
     _extract_pinn_features,  # pyright: ignore[reportPrivateUsage]
+    calibrate_pinn,
 )
+from lmc.segmentation import Segment
 
 
 def test_pinn_config_defaults() -> None:
@@ -116,12 +119,6 @@ def test_extract_pinn_features_shape_a_model() -> None:
     assert X.shape == (50, 3), f"Expected (50, 3) for a-model, got {X.shape}"
 
 
-import pytest
-
-from lmc.nn.pinn import calibrate_pinn
-from lmc.segmentation import Segment
-
-
 def test_calibrate_pinn_returns_result() -> None:
     rng = np.random.default_rng(10)
     df = _make_df(200, rng)
@@ -145,6 +142,7 @@ def test_calibrate_pinn_empty_segments_raises() -> None:
 
 def test_calibrate_pinn_missing_delta_b_raises() -> None:
     from lmc.columns import COL_DELTA_B  # noqa: PLC0415
+
     rng = np.random.default_rng(12)
     df = _make_df(50, rng).drop(COL_DELTA_B)
     seg = Segment(start_idx=0, end_idx=50, maneuver="pitch", heading="N")
@@ -167,7 +165,7 @@ def test_calibrate_pinn_pinn_residuals_smaller_than_tl() -> None:
     rng = np.random.default_rng(14)
     df = _make_df(300, rng)
     seg = Segment(start_idx=0, end_idx=300, maneuver="pitch", heading="N")
-    # Use tl_model_terms="a" (3 permanent terms) so TL leaves residuals for NN to correct
+    # Use tl_model_terms="a" (3 permanent terms) so TL leaves residuals for NN
     cfg = PINNConfig(n_estimators=5, max_iter=200, tl_model_terms="a")
     result = calibrate_pinn(df, [seg], cfg)
     tl_rmse = float(np.sqrt(np.mean(result.tl_residuals**2)))
