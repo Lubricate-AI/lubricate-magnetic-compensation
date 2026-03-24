@@ -243,3 +243,49 @@ def calibrate_pinn(
         n_nn_features=X.shape[1],
         n_estimators=config.n_estimators,
     )
+
+
+def predict_pinn(
+    df: pl.DataFrame,
+    result: PINNCalibrationResult,
+    config: PINNConfig,
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    """Predict total interference correction with uncertainty.
+
+    Combines TL backbone prediction with ensemble NN residual correction.
+
+    Parameters
+    ----------
+    df:
+        Input DataFrame containing all required magnetometer columns.
+    result:
+        Fitted ``PINNCalibrationResult`` from ``calibrate_pinn()``.
+    config:
+        PINN config with the same ``tl_model_terms`` and ``nn_feature_terms``
+        used during calibration.
+
+    Returns
+    -------
+    mean_prediction:
+        Combined ``TL_pred + NN_mean_pred`` interference estimate,
+        shape ``(n_samples,)``.
+    std_prediction:
+        Ensemble standard deviation of the NN residual component,
+        shape ``(n_samples,)``. Use as a proxy for prediction uncertainty.
+    """
+    # TL prediction: A @ coefficients
+    tl_cfg = PipelineConfig(model_terms=config.tl_model_terms)
+    feature_matrix = build_feature_matrix(df, tl_cfg)
+    A = np.asarray(feature_matrix.to_numpy(), dtype=np.float64)
+    tl_pred = np.asarray(A @ result.tl_result.coefficients, dtype=np.float64)
+
+    # NN residual prediction
+    X = _extract_pinn_features(df, config.nn_feature_terms)
+    X_scaled: npt.NDArray[np.float64] = result.input_scaler.transform(X)  # type: ignore[assignment]
+    nn_preds = np.column_stack(
+        [m.predict(X_scaled) for m in result.estimators]  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+    )  # shape (n_samples, n_estimators)
+    nn_mean = np.asarray(nn_preds.mean(axis=1), dtype=np.float64)
+    nn_std = np.asarray(nn_preds.std(axis=1), dtype=np.float64)
+
+    return tl_pred + nn_mean, nn_std

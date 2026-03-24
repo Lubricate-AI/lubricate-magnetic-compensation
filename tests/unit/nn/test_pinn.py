@@ -26,6 +26,7 @@ from lmc.nn.pinn import (
     PINNConfig,
     _extract_pinn_features,  # pyright: ignore[reportPrivateUsage]
     calibrate_pinn,
+    predict_pinn,
 )
 from lmc.segmentation import Segment
 
@@ -173,3 +174,29 @@ def test_calibrate_pinn_pinn_residuals_smaller_than_tl() -> None:
     assert pinn_rmse <= tl_rmse, (
         f"PINN RMSE ({pinn_rmse:.3f}) should be <= TL RMSE ({tl_rmse:.3f})"
     )
+
+
+def test_predict_pinn_shape_and_uncertainty() -> None:
+    rng = np.random.default_rng(20)
+    df = _make_df(200, rng)
+    seg = Segment(start_idx=0, end_idx=200, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=5, max_iter=50)
+    result = calibrate_pinn(df, [seg], cfg)
+
+    test_df = _make_df(50, np.random.default_rng(99))
+    mean_pred, std_pred = predict_pinn(test_df, result, cfg)
+    assert mean_pred.shape == (50,)
+    assert std_pred.shape == (50,)
+    assert np.all(std_pred >= 0.0)
+
+
+def test_predict_pinn_uncertainty_is_nontrivial() -> None:
+    """Bootstrap ensemble std should be positive for most samples."""
+    rng = np.random.default_rng(21)
+    df = _make_df(300, rng)
+    seg = Segment(start_idx=0, end_idx=300, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=10, max_iter=200)
+    result = calibrate_pinn(df, [seg], cfg)
+
+    _, std_pred = predict_pinn(df, result, cfg)
+    assert np.mean(std_pred > 0.0) > 0.9
