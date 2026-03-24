@@ -378,6 +378,97 @@ sample counts listed above, or when a condition number warning fires.
 
 ---
 
+## Supervised Neural Network Compensation
+
+!!! warning "Research module"
+    `lmc.nn.supervised` is an experimental research module. It is not yet
+    validated for production survey work. Use it to explore nonlinear
+    compensation approaches and compare against classical Tolles-Lawson results.
+
+### Motivation
+
+The Tolles-Lawson model is linear in the direction cosines and their products.
+This captures the dominant interference sources well, but real aircraft exhibit
+secondary nonlinear effects — hysteresis in ferromagnetic components, saturation
+of soft-iron at high field strengths, and cross-coupling between axes — that the
+linear model cannot represent.
+
+A supervised neural network learns the mapping
+
+$$
+f: (B_x,\, B_y,\, B_z) \;\longrightarrow\; \delta B
+$$
+
+directly from calibration data, without assuming a particular functional form.
+It can capture interactions and nonlinearities that the 18-term model misses,
+at the cost of requiring more calibration data and offering less physical
+interpretability.
+
+### Architecture
+
+`lmc.nn.supervised` trains a **bootstrap-ensemble MLP** (multi-layer perceptron):
+
+1. The full calibration dataset is assembled by stacking all labelled segments.
+2. A shared `StandardScaler` is fitted on the full feature matrix
+   $(B_x, B_y, B_z)$ and applied before every forward pass.
+3. `NNConfig.n_estimators` MLPRegressors are each trained on an independent
+   bootstrap resample (sampling with replacement) of the scaled data.
+4. At prediction time, the ensemble mean is used as the compensation signal;
+   the ensemble standard deviation is returned as a spread-based uncertainty
+   proxy.
+
+Default architecture: two hidden layers of 64 neurons each, ReLU activation,
+up to 500 training iterations per estimator, 20 bootstrap estimators.  All
+hyperparameters are configurable via `NNConfig`.
+
+### Usage
+
+```python
+from lmc.nn import NNConfig, calibrate_nn, compensate_nn, predict_nn
+from lmc.segmentation import Segment
+
+# 1. Define calibration segments (same as for Tolles-Lawson)
+segments = [
+    Segment(start_idx=0, end_idx=500, maneuver="pitch", heading="N"),
+    Segment(start_idx=500, end_idx=1000, maneuver="roll", heading="E"),
+]
+
+# 2. Train the ensemble (df must contain B_x, B_y, B_z, delta_B columns)
+config = NNConfig(hidden_layer_sizes=(64, 64), n_estimators=20)
+result = calibrate_nn(df_calibration, segments, config)
+
+# 3a. Compensate survey data (subtracts ensemble mean from B_total)
+df_compensated = compensate_nn(df_survey, result)
+
+# 3b. Or retrieve mean + uncertainty for further analysis
+mean_pred, std_pred = predict_nn(df_survey, result)
+lower = mean_pred - 1.96 * std_pred  # heuristic 95 % band (not a formal CI)
+upper = mean_pred + 1.96 * std_pred
+```
+
+### When to Use
+
+| Situation | Recommendation |
+|---|---|
+| Standard survey, sufficient calibration data | Tolles-Lawson (`calibrate` / `compensate`) |
+| Residual nonlinear interference suspected | Try `calibrate_nn` and compare FOM |
+| Limited calibration data (< 500 samples) | Prefer Tolles-Lawson — NN will overfit |
+| Uncertainty quantification needed | `predict_nn` returns ensemble spread |
+
+### Limitations
+
+- **Data hungry.** The ensemble MLP requires substantially more calibration
+  samples than the 18-term linear model to generalise reliably.
+- **Not interpretable.** Coefficients have no direct physical meaning,
+  making diagnostic inspection more difficult.
+- **Uncertainty is heuristic.** The ensemble standard deviation reflects
+  model disagreement, not a statistically rigorous confidence interval.
+- **No guarantee of improvement.** On well-conditioned calibration data,
+  Tolles-Lawson often matches or outperforms the NN due to its strong
+  physical inductive bias.
+
+---
+
 ## References
 
 - Tolles, W. E., & Lawson, J. D. (1950). *Magnetic compensation of MAD equipped aircraft*.
