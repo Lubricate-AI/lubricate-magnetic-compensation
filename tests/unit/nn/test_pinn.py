@@ -22,6 +22,7 @@ from lmc.columns import (
     COL_TIME,
     COL_TMI_COMPENSATED,
 )
+from lmc.config import PipelineConfig
 from lmc.nn.pinn import (
     PINNCalibrationResult,
     PINNConfig,
@@ -245,6 +246,18 @@ def test_compensate_pinn_values_are_btotal_minus_prediction() -> None:
     np.testing.assert_allclose(
         compensated[COL_TMI_COMPENSATED].to_numpy(), expected, rtol=1e-10
     )
+
+
+def test_calibrate_pinn_respects_tl_pipeline_config() -> None:
+    """tl_pipeline_config overrides tl_model_terms and is stored on result."""
+    rng = np.random.default_rng(60)
+    df = _make_df(200, rng)
+    seg = Segment(start_idx=0, end_idx=200, maneuver="pitch", heading="N")
+    tl_cfg = PipelineConfig(model_terms="b", use_ridge=True)
+    cfg = PINNConfig(n_estimators=3, max_iter=50, tl_pipeline_config=tl_cfg)
+    result = calibrate_pinn(df, [seg], cfg)
+    assert result.tl_model_terms == "b"
+    assert result.tl_result.n_terms == 9  # b-model = 9 TL terms
 
 
 def test_pinn_public_exports() -> None:

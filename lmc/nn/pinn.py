@@ -55,6 +55,14 @@ class PINNConfig:
         TL term set to use as NN input features.  ``'b'`` (9 terms) is
         recommended: captures permanent + induced physics without requiring
         time derivatives, which simplifies prediction.
+    tl_pipeline_config:
+        Full ``PipelineConfig`` to use for the Tolles-Lawson backbone
+        calibration.  When provided, its ``model_terms`` overrides
+        ``tl_model_terms``.  Use this to opt into regularisation
+        (``use_ridge``, ``use_lasso``), cross-validation (``use_cv``),
+        IMU-rate derivatives (``use_imu_rates``), or other TL options.
+        When ``None`` (default), a minimal config is constructed from
+        ``tl_model_terms`` with all other options at their defaults.
     """
 
     hidden_layer_sizes: tuple[int, ...] = field(default=(64, 64))
@@ -65,6 +73,7 @@ class PINNConfig:
     physics_lambda: float = 1e-3
     tl_model_terms: Literal["a", "b", "c", "d"] = "c"
     nn_feature_terms: Literal["a", "b", "c", "d"] = "b"
+    tl_pipeline_config: PipelineConfig | None = None
 
 
 @dataclass
@@ -186,7 +195,11 @@ def calibrate_pinn(
         )
 
     # --- Phase 1: Tolles-Lawson backbone calibration ---
-    tl_pipeline_cfg = PipelineConfig(model_terms=config.tl_model_terms)
+    tl_pipeline_cfg = (
+        config.tl_pipeline_config
+        if config.tl_pipeline_config is not None
+        else PipelineConfig(model_terms=config.tl_model_terms)
+    )
     tl_result = calibrate(df, segments, tl_pipeline_cfg)
 
     # Build stacked segment data for NN training
@@ -250,7 +263,7 @@ def calibrate_pinn(
         pinn_residuals=pinn_residuals,
         n_nn_features=X.shape[1],
         n_estimators=config.n_estimators,
-        tl_model_terms=config.tl_model_terms,
+        tl_model_terms=tl_pipeline_cfg.model_terms,
         nn_feature_terms=config.nn_feature_terms,
     )
 
