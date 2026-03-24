@@ -142,8 +142,6 @@ def test_calibrate_pinn_empty_segments_raises() -> None:
 
 
 def test_calibrate_pinn_missing_delta_b_raises() -> None:
-    from lmc.columns import COL_DELTA_B  # noqa: PLC0415
-
     rng = np.random.default_rng(12)
     df = _make_df(50, rng).drop(COL_DELTA_B)
     seg = Segment(start_idx=0, end_idx=50, maneuver="pitch", heading="N")
