@@ -4,11 +4,27 @@
 from __future__ import annotations
 
 import numpy as np
+import polars as pl
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 from lmc.calibration import CalibrationResult
-from lmc.nn.pinn import PINNCalibrationResult, PINNConfig
+from lmc.columns import (
+    COL_ALT,
+    COL_BTOTAL,
+    COL_BX,
+    COL_BY,
+    COL_BZ,
+    COL_DELTA_B,
+    COL_LAT,
+    COL_LON,
+    COL_TIME,
+)
+from lmc.nn.pinn import (
+    PINNCalibrationResult,
+    PINNConfig,
+    _extract_pinn_features,  # pyright: ignore[reportPrivateUsage]
+)
 
 
 def test_pinn_config_defaults() -> None:
@@ -58,22 +74,6 @@ def test_pinn_calibration_result_stores_fields() -> None:
     assert len(result.estimators) == 1
     assert result.tl_residuals.shape == (2,)
     assert result.pinn_residuals.shape == (2,)
-
-
-import polars as pl
-
-from lmc.columns import (
-    COL_ALT,
-    COL_BTOTAL,
-    COL_BX,
-    COL_BY,
-    COL_BZ,
-    COL_DELTA_B,
-    COL_LAT,
-    COL_LON,
-    COL_TIME,
-)
-from lmc.nn.pinn import _extract_pinn_features  # pyright: ignore[reportPrivateUsage]
 
 
 def _make_df(n: int, rng: np.random.Generator) -> pl.DataFrame:

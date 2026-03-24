@@ -99,7 +99,7 @@ class PINNCalibrationResult:
     n_estimators: int
 
 
-def _extract_pinn_features(
+def _extract_pinn_features(  # pyright: ignore[reportUnusedFunction]
     df: pl.DataFrame,
     nn_feature_terms: Literal["a", "b", "c", "d"],
 ) -> npt.NDArray[np.float64]:
