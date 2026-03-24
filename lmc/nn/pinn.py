@@ -277,6 +277,13 @@ def predict_pinn(
     tl_cfg = PipelineConfig(model_terms=config.tl_model_terms)
     feature_matrix = build_feature_matrix(df, tl_cfg)
     A = np.asarray(feature_matrix.to_numpy(), dtype=np.float64)
+    if A.shape[1] != result.tl_result.n_terms:
+        raise ValueError(
+            f"Tolles-Lawson feature matrix has {A.shape[1]} columns, but the "
+            f"calibrated TL model expects {result.tl_result.n_terms} terms. "
+            "This usually indicates that 'config.tl_model_terms' used for "
+            "prediction does not match the configuration used during calibration."
+        )
     tl_pred = np.asarray(A @ result.tl_result.coefficients, dtype=np.float64)
 
     # NN residual prediction

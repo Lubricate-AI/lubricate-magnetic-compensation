@@ -241,6 +241,18 @@ def test_compensate_pinn_values_are_btotal_minus_prediction() -> None:
     )
 
 
+def test_predict_pinn_tl_term_mismatch_raises() -> None:
+    rng = np.random.default_rng(50)
+    df = _make_df(100, rng)
+    seg = Segment(start_idx=0, end_idx=100, maneuver="pitch", heading="N")
+    cfg = PINNConfig(n_estimators=3, max_iter=50, tl_model_terms="c")
+    result = calibrate_pinn(df, [seg], cfg)
+
+    wrong_cfg = PINNConfig(tl_model_terms="a")  # "a" = 3 terms, "c" = 18 terms
+    with pytest.raises(ValueError, match="tl_model_terms"):
+        predict_pinn(df, result, wrong_cfg)
+
+
 def test_pinn_public_exports() -> None:
     from lmc.nn import (  # noqa: PLC0415
         PINNCalibrationResult,
