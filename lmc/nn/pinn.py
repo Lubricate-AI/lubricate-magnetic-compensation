@@ -90,6 +90,12 @@ class PINNCalibrationResult:
         for NN inputs, e.g. 9 for ``nn_feature_terms='b'``).
     n_estimators:
         Number of bootstrap estimators actually trained.
+    tl_model_terms:
+        Tolles-Lawson term set used for the physics backbone during calibration.
+        Stored so ``predict_pinn`` and ``compensate_pinn`` can rebuild the TL
+        feature matrix without requiring the caller to re-supply a config.
+    nn_feature_terms:
+        TL term set used as NN input features during calibration.
     """
 
     tl_result: CalibrationResult
@@ -99,6 +105,8 @@ class PINNCalibrationResult:
     pinn_residuals: npt.NDArray[np.float64]
     n_nn_features: int
     n_estimators: int
+    tl_model_terms: Literal["a", "b", "c", "d"]
+    nn_feature_terms: Literal["a", "b", "c", "d"]
 
 
 def _extract_pinn_features(
@@ -242,17 +250,20 @@ def calibrate_pinn(
         pinn_residuals=pinn_residuals,
         n_nn_features=X.shape[1],
         n_estimators=config.n_estimators,
+        tl_model_terms=config.tl_model_terms,
+        nn_feature_terms=config.nn_feature_terms,
     )
 
 
 def predict_pinn(
     df: pl.DataFrame,
     result: PINNCalibrationResult,
-    config: PINNConfig,
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Predict total interference correction with uncertainty.
 
     Combines TL backbone prediction with ensemble NN residual correction.
+    The term settings are read from ``result`` (stored at calibration time),
+    so callers do not need to re-supply a config.
 
     Parameters
     ----------
@@ -260,9 +271,6 @@ def predict_pinn(
         Input DataFrame containing all required magnetometer columns.
     result:
         Fitted ``PINNCalibrationResult`` from ``calibrate_pinn()``.
-    config:
-        PINN config with the same ``tl_model_terms`` and ``nn_feature_terms``
-        used during calibration.
 
     Returns
     -------
@@ -274,20 +282,20 @@ def predict_pinn(
         shape ``(n_samples,)``. Use as a proxy for prediction uncertainty.
     """
     # TL prediction: A @ coefficients
-    tl_cfg = PipelineConfig(model_terms=config.tl_model_terms)
+    tl_cfg = PipelineConfig(model_terms=result.tl_model_terms)
     feature_matrix = build_feature_matrix(df, tl_cfg)
     A = np.asarray(feature_matrix.to_numpy(), dtype=np.float64)
     if A.shape[1] != result.tl_result.n_terms:
         raise ValueError(
             f"Tolles-Lawson feature matrix has {A.shape[1]} columns, but the "
             f"calibrated TL model expects {result.tl_result.n_terms} terms. "
-            "This usually indicates that 'config.tl_model_terms' used for "
-            "prediction does not match the configuration used during calibration."
+            "This is an internal consistency error — the stored "
+            "'tl_model_terms' does not match the calibrated coefficients."
         )
     tl_pred = np.asarray(A @ result.tl_result.coefficients, dtype=np.float64)
 
     # NN residual prediction
-    X = _extract_pinn_features(df, config.nn_feature_terms)
+    X = _extract_pinn_features(df, result.nn_feature_terms)
     X_scaled: npt.NDArray[np.float64] = result.input_scaler.transform(X)  # type: ignore[assignment]
     nn_preds = np.column_stack(
         [m.predict(X_scaled) for m in result.estimators]  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
@@ -301,7 +309,6 @@ def predict_pinn(
 def compensate_pinn(
     df: pl.DataFrame,
     result: PINNCalibrationResult,
-    config: PINNConfig,
 ) -> pl.DataFrame:
     """Subtract PINN-predicted interference from survey TMI.
 
@@ -312,8 +319,6 @@ def compensate_pinn(
         required by ``predict_pinn``.
     result:
         Fitted ``PINNCalibrationResult`` from ``calibrate_pinn()``.
-    config:
-        PINN config with the same term settings used during calibration.
 
     Returns
     -------
@@ -331,7 +336,7 @@ def compensate_pinn(
             f"Column '{COL_BTOTAL}' is required for compensation but was not found. "
             f"Available columns: {df.columns}"
         )
-    mean_pred, _ = predict_pinn(df, result, config)
+    mean_pred, _ = predict_pinn(df, result)
     b_total = np.asarray(df[COL_BTOTAL].to_numpy(), dtype=np.float64)
     tmi_comp = b_total - mean_pred
     return df.with_columns(pl.Series(COL_TMI_COMPENSATED, tmi_comp, dtype=pl.Float64))

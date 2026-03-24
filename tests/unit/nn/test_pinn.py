@@ -74,12 +74,16 @@ def test_pinn_calibration_result_stores_fields() -> None:
         pinn_residuals=np.array([0.05, -0.04]),
         n_nn_features=2,
         n_estimators=1,
+        tl_model_terms="c",
+        nn_feature_terms="b",
     )
     assert result.n_nn_features == 2
     assert result.n_estimators == 1
     assert len(result.estimators) == 1
     assert result.tl_residuals.shape == (2,)
     assert result.pinn_residuals.shape == (2,)
+    assert result.tl_model_terms == "c"
+    assert result.nn_feature_terms == "b"
 
 
 def _make_df(n: int, rng: np.random.Generator) -> pl.DataFrame:
@@ -133,6 +137,8 @@ def test_calibrate_pinn_returns_result() -> None:
     assert result.tl_residuals.shape == (200,)
     assert result.pinn_residuals.shape == (200,)
     assert result.n_nn_features == 9  # b-model default
+    assert result.tl_model_terms == "c"
+    assert result.nn_feature_terms == "b"
 
 
 def test_calibrate_pinn_empty_segments_raises() -> None:
@@ -184,7 +190,7 @@ def test_predict_pinn_shape_and_uncertainty() -> None:
     result = calibrate_pinn(df, [seg], cfg)
 
     test_df = _make_df(50, np.random.default_rng(99))
-    mean_pred, std_pred = predict_pinn(test_df, result, cfg)
+    mean_pred, std_pred = predict_pinn(test_df, result)
     assert mean_pred.shape == (50,)
     assert std_pred.shape == (50,)
     assert np.all(std_pred >= 0.0)
@@ -198,7 +204,7 @@ def test_predict_pinn_uncertainty_is_nontrivial() -> None:
     cfg = PINNConfig(n_estimators=10, max_iter=200)
     result = calibrate_pinn(df, [seg], cfg)
 
-    _, std_pred = predict_pinn(df, result, cfg)
+    _, std_pred = predict_pinn(df, result)
     assert np.mean(std_pred > 0.0) > 0.9
 
 
@@ -209,7 +215,7 @@ def test_compensate_pinn_adds_column() -> None:
     cfg = PINNConfig(n_estimators=3, max_iter=50)
     result = calibrate_pinn(df, [seg], cfg)
 
-    compensated = compensate_pinn(df, result, cfg)
+    compensated = compensate_pinn(df, result)
     assert COL_TMI_COMPENSATED in compensated.columns
     assert len(compensated) == len(df)
 
@@ -222,7 +228,7 @@ def test_compensate_pinn_missing_btotal_raises() -> None:
     result = calibrate_pinn(df, [seg], cfg)
 
     with pytest.raises(ValueError, match="B_total"):
-        compensate_pinn(df.drop(COL_BTOTAL), result, cfg)
+        compensate_pinn(df.drop(COL_BTOTAL), result)
 
 
 def test_compensate_pinn_values_are_btotal_minus_prediction() -> None:
@@ -232,25 +238,13 @@ def test_compensate_pinn_values_are_btotal_minus_prediction() -> None:
     cfg = PINNConfig(n_estimators=3, max_iter=50)
     result = calibrate_pinn(df, [seg], cfg)
 
-    compensated = compensate_pinn(df, result, cfg)
-    mean_pred, _ = predict_pinn(df, result, cfg)
+    compensated = compensate_pinn(df, result)
+    mean_pred, _ = predict_pinn(df, result)
     b_total = df[COL_BTOTAL].to_numpy()
     expected = b_total - mean_pred
     np.testing.assert_allclose(
         compensated[COL_TMI_COMPENSATED].to_numpy(), expected, rtol=1e-10
     )
-
-
-def test_predict_pinn_tl_term_mismatch_raises() -> None:
-    rng = np.random.default_rng(50)
-    df = _make_df(100, rng)
-    seg = Segment(start_idx=0, end_idx=100, maneuver="pitch", heading="N")
-    cfg = PINNConfig(n_estimators=3, max_iter=50, tl_model_terms="c")
-    result = calibrate_pinn(df, [seg], cfg)
-
-    wrong_cfg = PINNConfig(tl_model_terms="a")  # "a" = 3 terms, "c" = 18 terms
-    with pytest.raises(ValueError, match="tl_model_terms"):
-        predict_pinn(df, result, wrong_cfg)
 
 
 def test_pinn_public_exports() -> None:
