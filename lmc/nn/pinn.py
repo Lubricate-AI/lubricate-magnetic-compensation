@@ -101,10 +101,14 @@ class PINNCalibrationResult:
         Number of bootstrap estimators actually trained.
     tl_model_terms:
         Tolles-Lawson term set used for the physics backbone during calibration.
-        Stored so ``predict_pinn`` and ``compensate_pinn`` can rebuild the TL
-        feature matrix without requiring the caller to re-supply a config.
+        Convenience accessor for ``tl_pipeline_config.model_terms``.
     nn_feature_terms:
         TL term set used as NN input features during calibration.
+    tl_pipeline_config:
+        Full ``PipelineConfig`` used for the Tolles-Lawson backbone calibration.
+        Stored so ``predict_pinn`` can reconstruct the exact A-matrix (including
+        ``use_imu_rates``, ``use_cv``, etc.) without requiring the caller to
+        re-supply a config.
     """
 
     tl_result: CalibrationResult
@@ -116,6 +120,7 @@ class PINNCalibrationResult:
     n_estimators: int
     tl_model_terms: Literal["a", "b", "c", "d"]
     nn_feature_terms: Literal["a", "b", "c", "d"]
+    tl_pipeline_config: PipelineConfig
 
 
 def _extract_pinn_features(
@@ -265,6 +270,7 @@ def calibrate_pinn(
         n_estimators=config.n_estimators,
         tl_model_terms=tl_pipeline_cfg.model_terms,
         nn_feature_terms=config.nn_feature_terms,
+        tl_pipeline_config=tl_pipeline_cfg,
     )
 
 
@@ -294,9 +300,9 @@ def predict_pinn(
         Ensemble standard deviation of the NN residual component,
         shape ``(n_samples,)``. Use as a proxy for prediction uncertainty.
     """
-    # TL prediction: A @ coefficients
-    tl_cfg = PipelineConfig(model_terms=result.tl_model_terms)
-    feature_matrix = build_feature_matrix(df, tl_cfg)
+    # TL prediction: A @ coefficients — use the stored full config so that
+    # use_imu_rates / use_cv produce identical feature columns to calibration.
+    feature_matrix = build_feature_matrix(df, result.tl_pipeline_config)
     A = np.asarray(feature_matrix.to_numpy(), dtype=np.float64)
     if A.shape[1] != result.tl_result.n_terms:
         raise ValueError(

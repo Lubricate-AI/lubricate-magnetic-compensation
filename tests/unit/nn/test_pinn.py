@@ -67,6 +67,7 @@ def test_pinn_calibration_result_stores_fields() -> None:
     scaler = StandardScaler()
     scaler.fit([[1.0, 2.0]])  # pyright: ignore[reportUnknownMemberType]
     estimators = [MLPRegressor(max_iter=10).fit([[1.0, 2.0]], [0.5])]  # pyright: ignore[reportUnknownMemberType]
+    stored_cfg = PipelineConfig(model_terms="c")
     result = PINNCalibrationResult(
         tl_result=tl,
         estimators=estimators,
@@ -77,6 +78,7 @@ def test_pinn_calibration_result_stores_fields() -> None:
         n_estimators=1,
         tl_model_terms="c",
         nn_feature_terms="b",
+        tl_pipeline_config=stored_cfg,
     )
     assert result.n_nn_features == 2
     assert result.n_estimators == 1
@@ -85,6 +87,7 @@ def test_pinn_calibration_result_stores_fields() -> None:
     assert result.pinn_residuals.shape == (2,)
     assert result.tl_model_terms == "c"
     assert result.nn_feature_terms == "b"
+    assert result.tl_pipeline_config is stored_cfg
 
 
 def _make_df(n: int, rng: np.random.Generator) -> pl.DataFrame:
@@ -258,6 +261,33 @@ def test_calibrate_pinn_respects_tl_pipeline_config() -> None:
     result = calibrate_pinn(df, [seg], cfg)
     assert result.tl_model_terms == "b"
     assert result.tl_result.n_terms == 9  # b-model = 9 TL terms
+    assert result.tl_pipeline_config is tl_cfg
+
+
+def test_predict_pinn_uses_stored_pipeline_config() -> None:
+    """predict_pinn uses the full PipelineConfig stored on the result.
+
+    Verifies that use_cv is persisted on the result and that predict_pinn
+    operates without error using the stored config (not a freshly constructed
+    PipelineConfig(model_terms=...) that would silently drop use_cv/use_imu_rates).
+    """
+    rng = np.random.default_rng(61)
+    df = _make_df(200, rng)
+    seg = Segment(start_idx=0, end_idx=200, maneuver="pitch", heading="N")
+
+    tl_cfg = PipelineConfig(use_cv=True)
+    cfg = PINNConfig(n_estimators=3, max_iter=50, tl_pipeline_config=tl_cfg)
+    result = calibrate_pinn(df, [seg], cfg)
+
+    # The exact PipelineConfig object must be stored on the result.
+    assert result.tl_pipeline_config is tl_cfg
+    assert result.tl_pipeline_config.use_cv is True
+
+    # predict_pinn must succeed using the stored config.
+    test_df = _make_df(50, np.random.default_rng(62))
+    mean_pred, std_pred = predict_pinn(test_df, result)
+    assert mean_pred.shape == (50,)
+    assert std_pred.shape == (50,)
 
 
 def test_pinn_public_exports() -> None:
