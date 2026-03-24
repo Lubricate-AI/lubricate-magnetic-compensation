@@ -15,6 +15,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
+import numpy as np
+import numpy.typing as npt
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+
+from lmc.calibration import CalibrationResult
+
 
 @dataclass(frozen=True)
 class PINNConfig:
@@ -53,3 +60,37 @@ class PINNConfig:
     physics_lambda: float = 1e-3
     tl_model_terms: Literal["a", "b", "c", "d"] = "c"
     nn_feature_terms: Literal["a", "b", "c", "d"] = "b"
+
+
+@dataclass
+class PINNCalibrationResult:
+    """Result of a PINN calibration.
+
+    Attributes
+    ----------
+    tl_result:
+        Fitted ``CalibrationResult`` from the Tolles-Lawson backbone.
+    estimators:
+        Bootstrap-ensemble MLP regressors trained on TL residuals.
+    input_scaler:
+        ``StandardScaler`` fitted on the full NN training feature matrix.
+    tl_residuals:
+        Per-sample TL residuals ``TL_pred - delta_B`` on the training
+        segments, shape ``(n_samples,)``.
+    pinn_residuals:
+        Final combined residuals ``(TL_pred + NN_mean_pred) - delta_B``,
+        shape ``(n_samples,)``.
+    n_nn_features:
+        Number of NN input features (columns in the TL feature matrix used
+        for NN inputs, e.g. 9 for ``nn_feature_terms='b'``).
+    n_estimators:
+        Number of bootstrap estimators actually trained.
+    """
+
+    tl_result: CalibrationResult
+    estimators: list[MLPRegressor]
+    input_scaler: StandardScaler
+    tl_residuals: npt.NDArray[np.float64]
+    pinn_residuals: npt.NDArray[np.float64]
+    n_nn_features: int
+    n_estimators: int
