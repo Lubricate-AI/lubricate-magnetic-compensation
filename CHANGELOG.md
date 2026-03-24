@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v1.26.0 (2026-03-24)
+
+### Bug Fixes
+
+- Address PR review comments on lmc.nn.supervised
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+- Move pyright ignore comment to correct line in predict_nn
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+### Chores
+
+- Lock dependencies after installing sklearn for NN module
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+- Scaffold lmc.nn.supervised module and test stub
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+### Documentation
+
+- Add supervised NN compensation section to theory.md
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+### Features
+
+- Implement lmc.nn.supervised — bootstrap MLP compensation module
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+- Supervised NN compensation module (lmc.nn.supervised)
+  ([#81](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/pull/81),
+  [`a74037e`](https://github.com/Lubricate-AI/lubricate-magnetic-compensation/commit/a74037e90cf7ca34cd7fc8f00e31a2e8cbc412e5))
+
+
 ## v1.25.1 (2026-03-23)
 
 ### Bug Fixes
